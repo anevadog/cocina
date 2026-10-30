@@ -4,7 +4,8 @@ API REST para estandarizar y controlar la operación de la cocina de un restaura
 lotes y caducidades, recetas técnicas versionadas con coste real, producción diaria con descuento
 automático de stock, trazabilidad y permisos por puesto.
 
-**Estado:** fase 0 (documentación). Todavía no hay código de aplicación. Ver `docs/memoria.md`.
+**Estado:** F1 en curso. El esqueleto de la API funciona (`/health`, `/ready`, OpenAPI); la parte de
+base de datos está pendiente de Docker. Ver `docs/memoria.md`.
 
 ## Documentación
 
@@ -24,7 +25,7 @@ automático de stock, trazabilidad y permisos por puesto.
 | JDK (Temurin) | 25 LTS | Instalado |
 | Docker Desktop + WSL2 | actual | **PENDIENTE de instalar** |
 | Git | cualquiera reciente | Instalado |
-| Maven | no hace falta | Se usa `./mvnw` (wrapper) |
+| Maven | no hace falta | Lo gestiona el wrapper (3.9.16) |
 
 No se necesita instalar Maven ni PostgreSQL de forma nativa: Maven se resuelve con el wrapper y
 PostgreSQL corre en un contenedor.
@@ -43,25 +44,35 @@ docker --version
 docker compose version
 ```
 
-## Puesta en marcha (cuando exista la Fase 1)
+## Puesta en marcha
+
+La API arranca sin base de datos (todavía no hay persistencia):
+
+```bash
+./mvnw spring-boot:run                                    # API en http://localhost:8080
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local   # con logs DEBUG
+```
+
+- Health: `http://localhost:8080/health`
+- Readiness: `http://localhost:8080/ready`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+
+Cuando exista el bloque de base de datos hará falta además:
 
 ```bash
 cp .env.example .env          # ajustar valores locales
 docker compose up -d          # PostgreSQL
-./mvnw spring-boot:run        # API en http://localhost:8080
 ```
-
-- API: `http://localhost:8080/api/v1`
-- OpenAPI: `http://localhost:8080/swagger-ui.html`
-- Health: `http://localhost:8080/health`
 
 ## Comandos habituales
 
 ```bash
-./mvnw verify            # compilar, tests y comprobaciones de calidad
+./mvnw verify            # compilar, tests y verificación de arquitectura
 ./mvnw test              # solo tests
 ./mvnw spring-boot:run   # arrancar en local
-docker compose ps        # estado de los contenedores
+./mvnw package           # generar el jar ejecutable en target/
+docker compose ps        # estado de los contenedores (cuando exista compose.yaml)
 docker compose logs -f db
 ```
 
@@ -72,17 +83,25 @@ En Windows con Git Bash, `./mvnw`; en CMD/PowerShell, `mvnw.cmd`.
 ```text
 cocina/
 ├─ AGENTS.md  CLAUDE.md  README.md
-├─ docs/                    # requisitos, arquitectura, decisiones, plan, memoria
+├─ docs/                        # requisitos, arquitectura, decisiones, plan, memoria
+├─ .mvn/wrapper/                # configuración del Maven Wrapper (Maven 3.9.16)
+├─ .github/workflows/ci.yml     # ./mvnw verify en GitHub Actions
+├─ mvnw  mvnw.cmd  pom.xml
 ├─ src/main/java/com/killa/cocina/
-│  ├─ config/               # seguridad, OpenAPI, Jackson, auditoría
-│  ├─ common/               # errores, paginación, utilidades
-│  └─ modules/              # un paquete por dominio
+│  ├─ CocinaApplication.java
+│  ├─ config/                   # reloj UTC y metadatos OpenAPI
+│  ├─ shared/
+│  │  ├─ error/                 # cuerpo de error uniforme (PLA-02)
+│  │  ├─ health/                # /health y /ready (PLA-04)
+│  │  └─ web/                   # requestId (NFR-OBS-01)
+│  └─ modules/                  # un paquete por dominio (aún vacío)
 ├─ src/main/resources/
-│  ├─ application.yml
-│  └─ db/migration/         # Flyway
+│  ├─ application.yml  application-local.yml  application-test.yml
+│  └─ db/migration/             # Flyway (pendiente de F1 bloque B)
 ├─ src/test/java/com/killa/cocina/
-├─ compose.yaml             # PostgreSQL para desarrollo
-└─ Dockerfile               # imagen de la aplicación (despliegue)
+│  └─ architecture/             # reglas ArchUnit de fronteras entre módulos
+├─ compose.yaml                 # PostgreSQL para desarrollo (pendiente)
+└─ Dockerfile                   # imagen de la aplicación (sin verificar: falta Docker)
 ```
 
 ## Variables de entorno

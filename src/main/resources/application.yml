@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: cocina-api
+  jackson:
+    time-zone: UTC
+    datatype:
+      datetime:
+        # PLA-06: fechas ISO 8601, nunca epoch. En Jackson 3 (Boot 4) esta bandera vive en
+        # DateTimeFeature, no en SerializationFeature. Las cantidades y el dinero se escriben
+        # siempre con BigDecimal y escala fija: nunca en notación científica.
+        write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+  mvc:
+    # PLA-02: cuerpo de error propio; no se usa ProblemDetail de Spring.
+    problemdetails:
+      enabled: false
+
+server:
+  port: 8080
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+
+logging:
+  # NFR-OBS-01: logs estructurados (JSON) con el requestId del MDC en cada línea.
+  structured:
+    format:
+      console: ecs
+  level:
+    root: INFO

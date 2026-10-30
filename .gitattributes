@@ -1,0 +1,8 @@
+# Normaliza los finales de línea en el repositorio (LF) para que mvnw funcione en Linux y CI.
+* text=auto eol=lf
+
+# Scripts de Windows deben conservar CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+mvnw text eol=lf

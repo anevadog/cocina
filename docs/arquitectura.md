@@ -45,6 +45,11 @@ Reglas de dependencia:
 
 `reporting` es de solo lectura: puede consultar vistas o tablas, nunca escribir en otros dominios.
 
+Fuera de `modules` existe el paquete transversal `com.killa.cocina.shared`, que agrupa lo que no
+pertenece a ningún dominio: cuerpo de error uniforme (`shared.error`), correlación de peticiones
+(`shared.web`) y sondas `/health` y `/ready` (`shared.health`). No contiene reglas de negocio y sirve
+igualmente a todos los módulos.
+
 ## 3. Modelo de datos
 
 Convenciones: `snake_case` plural, `bigint` con secuencia, `establishment_id` NOT NULL, `created_at`

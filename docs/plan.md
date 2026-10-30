@@ -10,7 +10,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
 | Fase | Contenido | Estado | Estimación |
 |---|---|---|---|
 | F0 | Documentación, decisiones y estructura | [x] Hecho | 1–2 días |
-| F1 | Esqueleto, entorno y CI | [ ] | ~1 semana |
+| F1 | Esqueleto, entorno y CI | [~] En curso (bloque A hecho) | ~1 semana |
 | F2 | Auth, usuarios y RBAC | [ ] | ~1 semana |
 | F3 | Inventario, lotes, kardex y PMP | [ ] | ~2 semanas |
 | F4 | Recetas, versiones y costes | [ ] | ~2 semanas |
@@ -47,25 +47,30 @@ compromisos.
 
 Objetivo: una API que arranca, conecta a PostgreSQL y expone health + OpenAPI.
 
-- [ ] `pom.xml` con Spring Boot 4.1.x, Java 25, dependencias base y plugins de calidad
-- [ ] Maven Wrapper (`mvnw`, `mvnw.cmd`, `.mvn/wrapper/`)
+**Bloque A — sin Docker (hecho y verificado)**
+
+- [x] `pom.xml` con Spring Boot 4.1.2, Java 25 y dependencias base
+- [x] Maven Wrapper 3.3.4 + Maven 3.9.16 (`mvnw`, `mvnw.cmd`, `.mvn/wrapper/`), SHA-256 verificado
+- [x] `application.yml` + perfiles `local`/`test`
+- [x] `CocinaApplication`, Jackson (UTC y `BigDecimal`) y errores uniformes con `requestId` (PLA-02)
+- [x] `/health` y `/ready`, con puerto `ReadinessIndicator` para las dependencias (PLA-04)
+- [x] springdoc-openapi 3.2.0 (PLA-01)
+- [x] Logs estructurados ECS con `requestId` en el MDC (NFR-OBS-01)
+- [x] ArchUnit: reglas de frontera entre capas y módulos
+- [x] `Dockerfile` multi-stage y `.dockerignore` — **sin verificar**: no hay Docker
+- [x] Workflow de CI con `./mvnw verify` — **sin ejecutar en remoto**: no hay remoto
+
+**Bloque B — requiere Docker/WSL2 (pendiente)**
+
 - [ ] `compose.yaml` con PostgreSQL 18, volumen y healthcheck
-- [ ] `application.yml` + perfiles `local`/`test`; `ddl-auto: validate`
+- [ ] Dependencias de persistencia (JPA, Flyway, driver PostgreSQL) y `ddl-auto: validate`
 - [ ] Flyway: migración `V1__baseline.sql` (solo tablas base necesarias)
-- [ ] `CocinaApplication`, configuración de Jackson (UTC, BigDecimal) y errores uniformes (PLA-02)
-- [ ] `/health` y `/ready` (PLA-04)
-- [ ] springdoc-openapi (PLA-01)
-- [ ] Logs estructurados con `requestId` (NFR-OBS-01)
-- [ ] ArchUnit: reglas de dependencia entre módulos
-- [ ] `Dockerfile` multi-stage y `.dockerignore`
-- [ ] CI: `./mvnw verify` en GitHub Actions
-- [ ] Testcontainers funcionando contra PostgreSQL real
+- [ ] `ReadinessIndicator` real que compruebe base de datos y migraciones
+- [ ] Testcontainers contra PostgreSQL real
+- [ ] Verificar `Dockerfile` y ejecutar el workflow de CI
 
-**Riesgo de fase:** Docker/WSL2 aún no instalado en la máquina. Bloquea la parte de base de datos.
-
-**Orden previsto:** avanzar primero `pom.xml`, wrapper, esqueleto, configuración, `/health` y
-`/ready`, OpenAPI, ArchUnit, `Dockerfile` y CI. Dejar `compose.yaml`, `V1__baseline.sql` y
-Testcontainers para cuando Docker esté operativo. La fase no se cierra sin `./mvnw verify` en verde.
+**Riesgo de fase:** Docker/WSL2 aún no instalado en la máquina. Bloquea todo el bloque B y cierra la
+fase, porque no se puede cumplir `./mvnw verify` con la parte de base de datos.
 
 ## F2 — Auth, usuarios y RBAC
 

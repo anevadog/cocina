@@ -1,0 +1,6 @@
+# Perfil de desarrollo local.
+# Arranque: ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+logging:
+  level:
+    root: INFO
+    com.killa.cocina: DEBUG

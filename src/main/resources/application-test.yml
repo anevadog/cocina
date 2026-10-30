@@ -1,0 +1,12 @@
+# Perfil de tests automatizados.
+spring:
+  main:
+    banner-mode: off
+
+logging:
+  level:
+    root: WARN
+    com.killa.cocina: INFO
+    # Un test provoca un 5xx a propósito para verificar que no se filtra detalle interno;
+    # su traza completa ensuciaría la salida del build sin aportar nada.
+    com.killa.cocina.shared.error.GlobalExceptionHandler: OFF
