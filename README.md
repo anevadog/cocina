@@ -4,10 +4,11 @@ API REST para estandarizar y controlar la operación de la cocina de un restaura
 lotes y caducidades, recetas técnicas versionadas con coste real, producción diaria con descuento
 automático de stock, trazabilidad y permisos por puesto.
 
-**Estado:** F3 en curso (bloque A cerrado). La API arranca, aplica migraciones V1–V3 en PostgreSQL 18,
-expone `/health`, `/ready` y OpenAPI, e incluye autenticación JWT con refresh rotatorio, RBAC por rol,
-auditoría y el catálogo de inventario (categorías, productos, conversiones y proveedores). Ver
-`docs/memoria.md`.
+**Estado:** F3 en curso (bloques A y B cerrados). La API arranca, aplica migraciones V1–V4 en
+PostgreSQL 18, expone `/health`, `/ready` y OpenAPI, e incluye autenticación JWT con refresh rotatorio,
+RBAC por rol, auditoría, el catálogo de inventario (categorías, productos, conversiones y proveedores)
+y los movimientos de stock (compras con lote y caducidad, ajustes con motivo, kardex inmutable, PMP y
+alertas). Ver `docs/memoria.md`.
 
 ## Documentación
 

@@ -104,7 +104,14 @@ borran: se archivan o desactivan con `active=false`. Un producto con stock disti
 archiva (409 `RESOURCE_IN_USE`).
 
 `products.current_stock` es una desnormalización de rendimiento; la fuente de verdad es
-`stock_movements`. El test que comprueba que ambos coinciden se añade con el kardex (bloque B).
+`stock_movements` y el desglose físico son los `stock_lots`. La suma de `remaining_qty` de los lotes
+coincide con `current_stock` salvo cuando el saldo es negativo por excepción (ADR-024), caso en el que
+no hay lote que consumir y el servicio deja un aviso en el log.
+
+`stock_movements` es un libro append-only: no existe endpoint de edición ni borrado y un **trigger**
+de la migración V4 rechaza `UPDATE` y `DELETE` (SQLSTATE 23000), también para el propietario de la
+tabla. Las correcciones se hacen con un ajuste y quedan auditadas. `unit_cost` se guarda siempre por
+unidad base: 12 €/kg en un producto en gramos son 0,0120 €/g.
 
 ### 3.3 Recetas
 
@@ -140,16 +147,33 @@ generan una versión nueva que referencia a la anterior.
 
 ### 4.1 Entrada de stock
 
-1. Validar producto, unidad de entrada y factor de conversión.
-2. Convertir a unidad base y redondear a 3 decimales.
-3. Abrir transacción; bloquear la fila de `products` (`SELECT ... FOR UPDATE`).
-4. Crear `stock_lots` con coste unitario y caducidad.
-5. Insertar `stock_movements` tipo `PURCHASE_IN` con `balance_after`.
-6. Recalcular PMP: `(stock_value_actual + cantidad × coste) / (stock_actual + cantidad)`.
-7. Actualizar `current_stock` y `current_avg_cost`.
-8. Auditar si cambia el coste.
+1. Validar producto activo, proveedor activo, unidad de entrada y factor de conversión.
+2. Convertir la cantidad a unidad base (3 decimales) y el precio a coste por unidad base
+   (4 decimales, `HALF_UP`).
+3. Abrir transacción; bloquear la fila de `products` (`SELECT ... FOR UPDATE`, ADR-022).
+4. Resolver `receivedAt` (por defecto ahora, nunca futura) y validar `expiresAt` (ADR-029).
+5. Crear `stock_lots` con coste unitario, saldo inicial y caducidad.
+6. Recalcular PMP: `(stock_value_actual + cantidad × coste) / (stock_actual + cantidad)`; si el saldo
+   previo no es positivo, el PMP pasa a ser el coste de la entrada (ADR-028).
+7. Actualizar `current_stock` y `current_avg_cost` del producto.
+8. Insertar `stock_movements` tipo `PURCHASE_IN` con `balance_after` y `occurred_at = receivedAt`.
+9. Auditar el movimiento y, si cambió el coste, el cambio de PMP (ADR-031).
 
-### 4.2 Descuento por producción
+Una recepción de compra no puede quedar en un producto archivado ni en un proveedor desactivado.
+
+### 4.2 Ajuste manual de inventario
+
+1. Validar producto activo, tipo (`ADJUSTMENT_IN`/`ADJUSTMENT_OUT`), cantidad, unidad y motivo
+   (5 a 200 caracteres).
+2. Abrir transacción y bloquear el producto.
+3. Valorar al PMP vigente; el ajuste **no** modifica el coste medio (ADR-027).
+4. Entrada: crear lote sin proveedor ni caducidad. Salida: consumir lotes FIFO por caducidad,
+   incluidos los caducados (ADR-030).
+5. Si la salida deja saldo negativo y `allow_negative=false`, responder **409**
+   `INSUFFICIENT_STOCK` sin escribir nada.
+6. Actualizar `current_stock`, insertar el movimiento con su motivo y auditar.
+
+### 4.3 Descuento por producción
 
 1. Cargar la versión de receta usada (nunca la "actual": la que se registró).
 2. Expandir ingredientes incluyendo merma; agregar por producto.
@@ -160,13 +184,13 @@ generan una versión nueva que referencia a la anterior.
 7. Actualizar stock; si algo falla, rollback completo y error 409.
 8. Insertar `production_batches` y auditar.
 
-### 4.3 Coste de una receta
+### 4.4 Coste de una receta
 
 - Al publicar: congelar `total_cost` y `cost_per_ration` en `recipe_versions`.
 - En consulta: recalcular con el PMP vigente si se pide "coste actual".
 - Un informe histórico usa el coste congelado, nunca el precio de hoy.
 
-### 4.4 Versionado
+### 4.5 Versionado
 
 ```text
 REC-001 v1 (PUBLISHED) ──► REC-001 v2 (PUBLISHED) ──► REC-001 v3 (DRAFT)
@@ -216,7 +240,7 @@ Solo `ADMIN` escribe usuarios: es la frontera que protege el resto del sistema. 
 borra; se desactiva, y la operación se rechaza si dejaría el establecimiento sin administradores
 activos.
 
-### 6.2 Endpoints de autenticación, usuarios y catálogo
+### 6.2 Endpoints de autenticación, usuarios, catálogo y stock
 
 | Método y ruta | Permiso | Notas |
 |---|---|---|
@@ -241,6 +265,11 @@ activos.
 | `POST /api/v1/suppliers` | `suppliers:write` | Nombre único; repetido → 409 `DUPLICATE_NAME` |
 | `GET /api/v1/suppliers/{id}` | `suppliers:read` | Solo del establecimiento del token |
 | `PATCH /api/v1/suppliers/{id}` | `suppliers:write` | Edición parcial; `active:false` es la baja lógica |
+| `POST /api/v1/products/{id}/purchases` | `inventory:write` | Entrada con proveedor, cantidad, unidad, precio, recepción y caducidad; 201 |
+| `POST /api/v1/products/{id}/adjustments` | `inventory:write` | Ajuste `IN`/`OUT` con motivo obligatorio; 201 |
+| `GET /api/v1/products/{id}/movements` | `inventory:read` | Kardex paginado, más reciente primero; sin edición ni borrado (405) |
+| `GET /api/v1/products/{id}/lots` | `inventory:read` | Lotes y saldo restante, paginado |
+| `GET /api/v1/inventory/alerts` | `inventory:read` | Stock bajo mínimo y caducidad próxima con valor en riesgo |
 
 ### 6.3 Auditoría
 
@@ -249,7 +278,8 @@ que la operación auditada, con `actor_id` tomado del token (`CurrentActor`), nu
 petición. Acciones ya cubiertas: `USER_CREATED`, `USER_UPDATED`, `USER_ROLE_CHANGED`,
 `USER_DEACTIVATED`, `LOGIN_FAILED`, `REFRESH_TOKEN_REUSED`, `CATEGORY_CREATED`, `CATEGORY_UPDATED`,
 `PRODUCT_CREATED`, `PRODUCT_UPDATED`, `PRODUCT_ARCHIVED`, `PRODUCT_CONVERSIONS_UPDATED`,
-`SUPPLIER_CREATED` y `SUPPLIER_UPDATED`.
+`SUPPLIER_CREATED`, `SUPPLIER_UPDATED`, `STOCK_PURCHASE_RECORDED`, `STOCK_ADJUSTMENT_RECORDED` y
+`STOCK_COST_CHANGED`.
 
 ### 6.4 Arranque del primer administrador
 
@@ -268,13 +298,20 @@ por defecto. La decisión y sus alternativas están en ADR-019.
   409 `RESOURCE_IN_USE`; un nombre repetido, 409 `DUPLICATE_NAME`.
 - `baseUnit` viaja como `G`, `ML` o `UNIT`. Una unidad de compra incompatible responde 400
   `UNIT_INCOMPATIBLE`, tanto al configurar el producto como al mover stock.
+- Un ajuste que dejaría saldo negativo con la política de bloqueo responde 409
+  `INSUFFICIENT_STOCK`; un ajuste sin motivo válido, 400 `VALIDATION_ERROR`.
+- `/inventory/alerts` no se pagina: cada lista se limita a 100 elementos y la respuesta incluye
+  `lowStockTotal` y `expiringTotal` con el total real.
+- Sin token, cualquier endpoint de negocio responde 401 `UNAUTHORIZED`. INV-05 dice «sin usuario →
+  400»; se mantiene 401 porque es lo correcto para una petición no autenticada.
 - OpenAPI generado; no se documenta a mano en Markdown.
 
 ## 8. Persistencia y rendimiento
 
 - `numeric(12,3)` cantidades, `numeric(12,4)` costes.
-- Índices previstos: `stock_movements(product_id, occurred_at)`, `stock_lots(product_id, expires_at)`,
-  `app_users(username)`, `audit_logs(entity_type, entity_id)`, `production_plans(service_date)`.
+- Índices previstos: `stock_movements(product_id, occurred_at DESC, id DESC)`,
+  `stock_lots(product_id, expires_at, received_at)`, `app_users(username)`,
+  `audit_logs(entity_type, entity_id)`, `production_plans(service_date)`.
 - Sin caché en el MVP; si hace falta, primero medir.
 - Informes: SQL agregado y solo lectura; no cargar entidades completas para sumar.
 

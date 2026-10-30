@@ -31,6 +31,11 @@ Una entrada por decisión con contexto, opciones, decisión y consecuencias. Est
 | ADR-024 | Política de stock negativo configurable por producto | Aceptada |
 | ADR-025 | Lotes con caducidad opcional y ventana de aviso | Aceptada |
 | ADR-026 | Motivo de ajuste y tipos de movimiento de F3 | Aceptada |
+| ADR-027 | Los ajustes se valoran al PMP vigente y no lo modifican | Aceptada |
+| ADR-028 | Con stock no positivo, la compra fija el PMP | Aceptada |
+| ADR-029 | Fechas de recepción, caducidad y `occurred_at` del movimiento | Aceptada |
+| ADR-030 | Los ajustes de salida consumen lotes FIFO, incluidos los caducados | Aceptada |
+| ADR-031 | Una fila de auditoría por movimiento y otra si cambia el coste | Aceptada |
 
 ---
 
@@ -386,8 +391,8 @@ momentáneamente en negativo (consumo antes de registrar la compra) y otros que 
 
 **Decisión:** `products.allow_negative` (por defecto `false`). Con el bloqueo activo, un movimiento
 que dejaría saldo negativo devuelve **409** `INSUFFICIENT_STOCK` sin aplicar ningún cambio; la base
-de datos lo respalda con la constraint `allow_negative OR current_stock >= 0`. En F3 la política ya
-está en el modelo y en el catálogo; los movimientos que la aplican llegan en el bloque B.
+de datos lo respalda con la constraint `allow_negative OR current_stock >= 0`. Desde el bloque B de
+F3, la comprobación se aplica en cada ajuste y movimiento.
 
 **Consecuencias:** el catálogo puede marcar excepciones sin desactivar la protección general. Un
 producto en negativo por excepción aparece en las alertas y debe regularizarse con una entrada.
@@ -402,11 +407,12 @@ productos caducan: la sal, las conservas o el aceite no tienen una fecha útil.
 **Opciones:** caducidad obligatoria · caducidad opcional · sin caducidad y solo alertas manuales.
 
 **Decisión:** `stock_lots.expires_at` es opcional. Los lotes con fecha entran en la ventana de aviso
-configurable (3 días por defecto). Un lote caducado no se consume: el intento devuelve **409** y no
-modifica stock.
+configurable (3 días por defecto). Un lote caducado no se consume en producción: el intento devuelve
+**409** y no modifica stock. Los ajustes de inventario son la excepción (ADR-030).
 
 **Consecuencias:** el modelo no obliga a inventar fechas. La ventana de aviso es configuración
-operativa, no una constante del código, y se aplica en el bloque B (lotes y movimientos).
+operativa, no una constante del código, y se aplica en el bloque B (lotes y movimientos). El bloqueo
+de caducados se activa con el consumo de producción en F5.
 
 ---
 
@@ -425,3 +431,98 @@ endpoint hasta su fase.
 **Consecuencias:** la operación no queda bloqueada por un catálogo incompleto y el kardex conserva
 un motivo legible. Cuando los motivos se repitan, se podrá normalizar en un catálogo sin romper el
 histórico. El enum de tipos no admite valores sin fase asignada.
+
+---
+
+## ADR-027 — Los ajustes se valoran al PMP vigente y no lo modifican
+
+**Contexto:** INV-05 exige ajustes manuales e INV-09 define el PMP como coste de las entradas. Un
+ajuste puede entrar stock sin precio de compra, así que hay que decidir con qué coste se valora y si
+ese coste puede alterar el PMP.
+
+**Opciones:** valorar los ajustes a cero · valorar al PMP vigente sin modificarlo · valorar al PMP y
+recalcularlo como si fuera una compra · exigir precio en el ajuste.
+
+**Decisión:** `ADJUSTMENT_IN` se valora al PMP vigente del producto y **no** lo modifica;
+`ADJUSTMENT_OUT` descuenta al PMP vigente. Solo `PURCHASE_IN` recalcula el PMP.
+
+**Consecuencias:** un ajuste nunca cambia el coste medio por una vía sin factura, y el kardex conserva
+el coste aplicado en cada fila. Si el saldo llega a cero, el PMP se mantiene como referencia hasta la
+siguiente compra. Valorar a cero habría hundido el coste del producto; pedir precio habría convertido
+un ajuste en una compra encubierta.
+
+---
+
+## ADR-028 — Con stock no positivo, la compra fija el PMP
+
+**Contexto:** con `allow_negative=true` (ADR-024) un producto puede tener saldo negativo. La fórmula
+del PMP divide por `stock_actual + cantidad`, que puede ser cero o negativo, y un saldo negativo no
+representa valor recuperable.
+
+**Opciones:** impedir compras mientras el saldo no sea positivo · usar el valor absoluto del saldo ·
+dejar el PMP intacto · fijar el PMP al coste de la entrada.
+
+**Decisión:** si `current_stock <= 0` antes de la compra, el nuevo PMP es el coste unitario de esa
+compra. Con saldo positivo se aplica la media ponderada habitual.
+
+**Consecuencias:** nunca se divide por cero ni se arrastra un coste sin sentido, y el producto vuelve
+a tener una valoración fiable en cuanto se regulariza. El saldo negativo sigue siendo visible en el
+kardex y en las alertas: la decisión afecta al coste, no oculta la deuda de stock.
+
+---
+
+## ADR-029 — Fechas de recepción, caducidad y `occurred_at` del movimiento
+
+**Contexto:** el hecho puede registrarse más tarde que la recepción real (una factura del día
+anterior). El kardex ordena por `occurred_at` y la caducidad depende de la recepción.
+
+**Opciones:** exigir fecha de recepción · usar siempre el instante del registro · permitir fechas
+pasadas y rechazar futuras.
+
+**Decisión:** `receivedAt` es opcional y por defecto el instante actual; nunca puede ser futuro.
+`expiresAt` es opcional, pero si existe debe ser posterior a `receivedAt`. El `occurred_at` del
+movimiento es `receivedAt`, de modo que un registro tardío se coloca en su sitio del kardex. Los
+ajustes se registran a la hora actual.
+
+**Consecuencias:** se puede regularizar una recepción de ayer sin falsear el orden histórico. El
+`balance_after` refleja el saldo en el momento del registro, no una reconstrucción del pasado: si se
+inserta un movimiento retrodatado, el saldo de las filas posteriores no se recalcula (el kardex es
+append-only). Para el MVP es aceptable porque la recepción se registra el mismo día del servicio.
+
+---
+
+## ADR-030 — Los ajustes de salida consumen lotes FIFO, incluidos los caducados
+
+**Contexto:** CAL-04 bloquea el consumo de lotes caducados, pero un ajuste negativo por rotura o
+recuento debe poder corregir el inventario aunque el stock esté caducado, o el saldo no cuadraría con
+la realidad física.
+
+**Opciones:** bloquear el ajuste si el lote está caducado · consumir solo lotes vigentes · consumir
+FIFO sin excluir caducados.
+
+**Decisión:** `ADJUSTMENT_OUT` consume lotes FIFO por caducidad y antigüedad, **incluidos los
+caducados**. El bloqueo de CAL-04 se aplicará al consumo de producción (`PRODUCTION_OUT`) en F5, que
+es donde el lote caducado no debe llegar al plato.
+
+**Consecuencias:** el desglose de lotes sigue cuadrando con `current_stock` y un ajuste puede retirar
+stock caducado, que es justo lo que hace una merma. El riesgo de consumir caducado por la vía de un
+ajuste queda cubierto por el motivo obligatorio y la auditoría, no por el bloqueo.
+
+---
+
+## ADR-031 — Una fila de auditoría por movimiento y otra si cambia el coste
+
+**Contexto:** la regla 7.8 exige auditar los ajustes de stock y los cambios de coste. Un movimiento
+modifica varias cosas a la vez: saldo, lote y, en las compras, PMP.
+
+**Opciones:** una fila por movimiento con todo · una fila por campo modificado · una fila por
+movimiento más una específica de coste.
+
+**Decisión:** cada compra o ajuste escribe una fila con la acción `STOCK_PURCHASE_RECORDED` o
+`STOCK_ADJUSTMENT_RECORDED`, referida a `stock_movement` y con el stock y el coste antes y después. Si
+el PMP cambia, se añade una fila `STOCK_COST_CHANGED` referida a `product`.
+
+**Consecuencias:** se puede reconstruir el efecto de un movimiento con una sola consulta y, a la vez,
+buscar cambios de coste sin recorrer todo el kardex. La auditoría duplica información derivable del
+propio kardex a propósito: es un registro independiente y no debe depender de que el kardex se
+interprete bien.

@@ -12,7 +12,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
 | F0 | Documentación, decisiones y estructura | [x] Hecho | 1–2 días |
 | F1 | Esqueleto, entorno y CI | [x] | ~1 semana |
 | F2 | Auth, usuarios y RBAC | [x] | ~1 semana |
-| F3 | Inventario, lotes, kardex y PMP | [~] En curso | ~2 semanas |
+| F3 | Inventario, lotes, kardex y PMP | [~] Bloque C | ~2 semanas |
 | F4 | Recetas, versiones y costes | [ ] | ~2 semanas |
 | F5 | Producción y descuento automático | [ ] | ~1,5 semanas |
 | F6 | Calidad y trazabilidad | [ ] | ~1,5 semanas |
@@ -89,15 +89,21 @@ remoto Git; se comprobará al publicar el repositorio.
 **Bloque A — catálogo (hecho y verificado)**
 
 - [x] Catálogo de productos y categorías (INV-01)
-- [~] Unidades y conversiones con validación de compatibilidad (INV-02, INV-03)
+- [x] Unidades y conversiones con validación de compatibilidad (INV-02, INV-03)
 - [x] Proveedores
-- [ ] Entradas con lote, caducidad y coste (INV-04, CAL-01)
-- [ ] Movimientos inmutables y saldo (INV-06)
-- [ ] PMP (INV-09)
-- [ ] Ajustes con motivo (INV-05)
-- [ ] Política de stock negativo (INV-08)
-- [ ] Alertas de mínimo y caducidad (INV-07, ECO-06)
-- [ ] Tests de concurrencia: dos descuentos simultáneos (NFR-INT-01)
+
+**Bloque B — movimientos, lotes y PMP (hecho y verificado)**
+
+- [x] Entradas con lote, caducidad y coste (INV-04, CAL-01)
+- [x] Movimientos inmutables y saldo (INV-06)
+- [x] PMP (INV-09)
+- [x] Ajustes con motivo (INV-05)
+- [x] Política de stock negativo (INV-08)
+- [x] Alertas de mínimo y caducidad (INV-07, ECO-06)
+
+**Pendiente de la fase**
+
+- [ ] Bloque C: concurrencia y pruebas de carga sobre movimientos simultáneos (NFR-INT-01)
 
 **Fase crítica.** Si el stock no es exacto aquí, todo lo posterior es decorativo.
 
