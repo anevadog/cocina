@@ -9,7 +9,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
 
 | Fase | Contenido | Estado | Estimación |
 |---|---|---|---|
-| F0 | Documentación, decisiones y estructura | [~] En curso | 1–2 días |
+| F0 | Documentación, decisiones y estructura | [x] Hecho | 1–2 días |
 | F1 | Esqueleto, entorno y CI | [ ] | ~1 semana |
 | F2 | Auth, usuarios y RBAC | [ ] | ~1 semana |
 | F3 | Inventario, lotes, kardex y PMP | [ ] | ~2 semanas |
@@ -38,10 +38,10 @@ compromisos.
 - [x] Analizar el proyecto y delimitar alcance
 - [x] Definir requisitos con ID y criterio de aceptación
 - [x] Decidir stack, persistencia y entorno
-- [~] Crear documentación inicial (`AGENTS.md`, `README.md`, `docs/`)
-- [ ] Revisión del usuario
-- [ ] `git init` en `cocina/` y primer commit (lo ejecuta el usuario)
-- [ ] Decidir política de retención de datos (PENDIENTE P2)
+- [x] Crear documentación inicial (`AGENTS.md`, `README.md`, `docs/`)
+- [x] Revisión del usuario
+- [x] `git init` en `cocina/` y commits iniciales (los ejecuta el usuario): `5c25101`, `88259cb`
+- [ ] Decidir política de retención de datos (PENDIENTE P2 — bloquea datos reales, no F1)
 
 ## F1 — Esqueleto, entorno y CI
 
@@ -62,6 +62,10 @@ Objetivo: una API que arranca, conecta a PostgreSQL y expone health + OpenAPI.
 - [ ] Testcontainers funcionando contra PostgreSQL real
 
 **Riesgo de fase:** Docker/WSL2 aún no instalado en la máquina. Bloquea la parte de base de datos.
+
+**Orden previsto:** avanzar primero `pom.xml`, wrapper, esqueleto, configuración, `/health` y
+`/ready`, OpenAPI, ArchUnit, `Dockerfile` y CI. Dejar `compose.yaml`, `V1__baseline.sql` y
+Testcontainers para cuando Docker esté operativo. La fase no se cierra sin `./mvnw verify` en verde.
 
 ## F2 — Auth, usuarios y RBAC
 
