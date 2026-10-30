@@ -25,6 +25,12 @@ Una entrada por decisión con contexto, opciones, decisión y consecuencias. Est
 | ADR-018 | Refresh token en el cuerpo JSON | Aceptada |
 | ADR-019 | Primer administrador por configuración, no por migración | Aceptada |
 | ADR-020 | Casos de uso transaccionales en `infrastructure` tras un puerto de dominio | Aceptada |
+| ADR-021 | Escalas y redondeo únicos para cantidades y costes | Aceptada |
+| ADR-022 | Bloqueo pesimista por producto en cada movimiento de stock | Aceptada |
+| ADR-023 | Conversiones por producto y rechazo entre dimensiones | Aceptada |
+| ADR-024 | Política de stock negativo configurable por producto | Aceptada |
+| ADR-025 | Lotes con caducidad opcional y ventana de aviso | Aceptada |
+| ADR-026 | Motivo de ajuste y tipos de movimiento de F3 | Aceptada |
 
 ---
 
@@ -308,3 +314,114 @@ implementación con `@Service` y `@Transactional` vive en `infrastructure`. El d
 **Consecuencias:** las reglas puras se prueban sin contexto y `api` no ve JPA. Hay un mapeo adicional
 (dominio ↔ DTO ↔ entidad) y dos interfaces por módulo; a cambio, `ModuleBoundariesTest` se cumple sin
 excepciones y el día que se cambie de persistencia solo se sustituye el adaptador.
+
+---
+
+## ADR-021 — Escalas y redondeo únicos para cantidades y costes
+
+**Contexto:** el stock, el PMP y los costes de receta se calculan por caminos distintos. Si cada
+servicio redondea a su manera, dos operaciones equivalentes dan saldos distintos y el kardex deja de
+cuadrar.
+
+**Opciones:** `double` (descartado por la regla 7.1) · `BigDecimal` redondeado en cada operación ·
+`BigDecimal` con escala y redondeo centralizados.
+
+**Decisión:** `Quantities` es la única definición de aritmética del inventario: cantidades
+`numeric(12,3)` y costes `numeric(12,4)`, siempre `HALF_UP`. El factor de conversión usa
+`numeric(18,6)` con la misma regla. El kardex guarda el coste unitario aplicado en cada movimiento,
+de modo que un cambio posterior del PMP no reescribe el histórico.
+
+**Consecuencias:** resultados deterministas y reproducibles entre servicios y tests; cualquier
+cambio de redondeo se hace en un solo sitio. El redondeo sigue siendo una decisión de negocio: se
+fija aquí y no se delega en la base de datos.
+
+---
+
+## ADR-022 — Bloqueo pesimista por producto en cada movimiento de stock
+
+**Contexto:** NFR-INT-01 exige que dos descuentos simultáneos no dejen un saldo incorrecto. Leer el
+stock, calcular el nuevo saldo y escribirlo sin protección permite perder actualizaciones.
+
+**Opciones:** bloqueo optimista con `@Version` y reintentos · bloqueo pesimista de la fila del
+producto (`SELECT … FOR UPDATE`) · aislamiento `SERIALIZABLE`.
+
+**Decisión:** cada movimiento bloquea la fila de `products` dentro de su transacción
+(`ProductJpaRepository.findForUpdate`) y calcula `balance_after` y `current_stock` en la misma
+transacción. En F5, cuando una producción toca varios productos, se bloquean en orden de
+`product_id` para evitar interbloqueos.
+
+**Consecuencias:** los movimientos del mismo producto se serializan, lo que sobra para el volumen de
+una cocina. No hace falta que el cliente reintente ni que la API exponga conflictos de versión. Hay
+que respetar el orden de bloqueo cuando haya varios productos implicados.
+
+---
+
+## ADR-023 — Conversiones por producto y rechazo entre dimensiones
+
+**Contexto:** INV-02 pide convertir unidades compatibles (g/kg, ml/l) y rechazar g → ml. Una tabla
+global de unidades obliga a mantener factores que en la práctica son del producto (una caja de
+tomate no pesa lo mismo que una de arroz).
+
+**Opciones:** catálogo global de unidades con factores fijos · factor por producto hacia la unidad
+base · convertir libremente y validar solo al mover stock.
+
+**Decisión:** el factor se guarda por producto en `product_unit_conversions` y siempre apunta a su
+unidad base. Las etiquetas conocidas tienen dimensión (g, kg, mg, oz, lb → masa; ml, l, cl, dl →
+volumen; ud, u, unidad → unidad); declarar una conversión de otra dimensión devuelve
+`UNIT_INCOMPATIBLE`. Las etiquetas propias del producto (`caja`, `saco`) se admiten y se asumen de
+la dimensión del producto. La unidad base no se declara como conversión y no se puede cambiar.
+
+**Consecuencias:** g → ml se rechaza también al configurar el producto, no solo al mover stock. Una
+etiqueta inventada no se puede validar dimensionalmente: la responsabilidad es de quien configura el
+catálogo. Cambiar la unidad base exige crear otro producto y ajustar el saldo.
+
+---
+
+## ADR-024 — Política de stock negativo configurable por producto
+
+**Contexto:** INV-08 exige una política configurable. En una cocina hay productos que pueden quedar
+momentáneamente en negativo (consumo antes de registrar la compra) y otros que nunca deberían.
+
+**Opciones:** bloqueo global e inviolable · permitir siempre negativo · política por producto.
+
+**Decisión:** `products.allow_negative` (por defecto `false`). Con el bloqueo activo, un movimiento
+que dejaría saldo negativo devuelve **409** `INSUFFICIENT_STOCK` sin aplicar ningún cambio; la base
+de datos lo respalda con la constraint `allow_negative OR current_stock >= 0`. En F3 la política ya
+está en el modelo y en el catálogo; los movimientos que la aplican llegan en el bloque B.
+
+**Consecuencias:** el catálogo puede marcar excepciones sin desactivar la protección general. Un
+producto en negativo por excepción aparece en las alertas y debe regularizarse con una entrada.
+
+---
+
+## ADR-025 — Lotes con caducidad opcional y ventana de aviso
+
+**Contexto:** CAL-01 y CAL-04 exigen trazabilidad por lote y bloqueo de caducados. No todos los
+productos caducan: la sal, las conservas o el aceite no tienen una fecha útil.
+
+**Opciones:** caducidad obligatoria · caducidad opcional · sin caducidad y solo alertas manuales.
+
+**Decisión:** `stock_lots.expires_at` es opcional. Los lotes con fecha entran en la ventana de aviso
+configurable (3 días por defecto). Un lote caducado no se consume: el intento devuelve **409** y no
+modifica stock.
+
+**Consecuencias:** el modelo no obliga a inventar fechas. La ventana de aviso es configuración
+operativa, no una constante del código, y se aplica en el bloque B (lotes y movimientos).
+
+---
+
+## ADR-026 — Motivo de ajuste y tipos de movimiento de F3
+
+**Contexto:** INV-05 exige motivo en salidas y ajustes. Un catálogo cerrado de motivos añade
+mantenimiento antes de conocer la operación real; un texto libre sin límites ensucia el kardex.
+
+**Opciones:** catálogo cerrado de motivos · texto libre sin límites · texto libre acotado.
+
+**Decisión:** `stock_movements.reason` es texto libre de 5 a 200 caracteres para ajustes y mermas.
+Los tipos de movimiento de F3 son `PURCHASE_IN`, `ADJUSTMENT_IN` y `ADJUSTMENT_OUT`.
+`PRODUCTION_OUT` se activa en F5 y `WASTE_OUT` en F6; el enum los define desde F3 pero no tienen
+endpoint hasta su fase.
+
+**Consecuencias:** la operación no queda bloqueada por un catálogo incompleto y el kardex conserva
+un motivo legible. Cuando los motivos se repitan, se podrá normalizar en un catálogo sin romper el
+histórico. El enum de tipos no admite valores sin fase asignada.

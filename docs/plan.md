@@ -12,7 +12,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
 | F0 | Documentación, decisiones y estructura | [x] Hecho | 1–2 días |
 | F1 | Esqueleto, entorno y CI | [x] | ~1 semana |
 | F2 | Auth, usuarios y RBAC | [x] | ~1 semana |
-| F3 | Inventario, lotes, kardex y PMP | [ ] | ~2 semanas |
+| F3 | Inventario, lotes, kardex y PMP | [~] En curso | ~2 semanas |
 | F4 | Recetas, versiones y costes | [ ] | ~2 semanas |
 | F5 | Producción y descuento automático | [ ] | ~1,5 semanas |
 | F6 | Calidad y trazabilidad | [ ] | ~1,5 semanas |
@@ -86,9 +86,11 @@ remoto Git; se comprobará al publicar el repositorio.
 
 ## F3 — Inventario
 
-- [ ] Catálogo de productos y categorías (INV-01)
-- [ ] Unidades y conversiones con validación de compatibilidad (INV-02, INV-03)
-- [ ] Proveedores
+**Bloque A — catálogo (hecho y verificado)**
+
+- [x] Catálogo de productos y categorías (INV-01)
+- [~] Unidades y conversiones con validación de compatibilidad (INV-02, INV-03)
+- [x] Proveedores
 - [ ] Entradas con lote, caducidad y coste (INV-04, CAL-01)
 - [ ] Movimientos inmutables y saldo (INV-06)
 - [ ] PMP (INV-09)

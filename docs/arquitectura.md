@@ -86,18 +86,25 @@ Roles: `ADMIN`, `KITCHEN_MANAGER`, `COOK`, `STOREKEEPER`.
 
 | Tabla | Campos principales |
 |---|---|
-| `product_categories` | `id`, `establishment_id`, `name` |
-| `products` | `id`, `establishment_id`, `name`, `category_id`, `base_unit`, `min_stock`, `current_avg_cost`, `current_stock`, `allow_negative`, `active` |
-| `product_unit_conversions` | `id`, `product_id`, `unit`, `factor_to_base` |
-| `suppliers` | `id`, `establishment_id`, `name`, `contact`, `active` |
+| `product_categories` | `id`, `establishment_id`, `name`, `created_at`, `updated_at`; único `(establishment_id, name)` |
+| `products` | `id`, `establishment_id`, `category_id`, `name`, `base_unit`, `min_stock`, `current_avg_cost`, `current_stock`, `allow_negative`, `active`; único `(establishment_id, name)` |
+| `product_unit_conversions` | `id`, `establishment_id`, `product_id`, `unit`, `factor_to_base`; único `(product_id, unit)` |
+| `suppliers` | `id`, `establishment_id`, `name`, `contact`, `active`; único `(establishment_id, name)` |
 | `stock_lots` | `id`, `establishment_id`, `product_id`, `supplier_id`, `received_at`, `expires_at`, `unit_cost`, `initial_qty`, `remaining_qty` |
 | `stock_movements` | `id`, `establishment_id`, `product_id`, `lot_id`, `type`, `quantity_base`, `unit_cost`, `balance_after`, `reason`, `reference_type`, `reference_id`, `actor_id`, `occurred_at` |
 
 `base_unit`: `G`, `ML`, `UNIT`. Tipos de movimiento: `PURCHASE_IN`, `PRODUCTION_OUT`, `WASTE_OUT`,
 `ADJUSTMENT_IN`, `ADJUSTMENT_OUT`.
 
+La unidad base es inmutable y el factor de conversión es **por producto**: `kg` vale 1000 en un
+producto de peso y `l` vale 1000 en uno de volumen. Declarar una unidad conocida de otra dimensión
+(`l` en un producto en gramos) devuelve `UNIT_INCOMPATIBLE`; las etiquetas propias (`caja`, `saco`)
+se aceptan con la dimensión del producto (ADR-023). Ni categorías, ni productos, ni proveedores se
+borran: se archivan o desactivan con `active=false`. Un producto con stock distinto de cero no se
+archiva (409 `RESOURCE_IN_USE`).
+
 `products.current_stock` es una desnormalización de rendimiento; la fuente de verdad es
-`stock_movements`. Un test verifica que ambos coinciden.
+`stock_movements`. El test que comprueba que ambos coinciden se añade con el kardex (bloque B).
 
 ### 3.3 Recetas
 
@@ -209,7 +216,7 @@ Solo `ADMIN` escribe usuarios: es la frontera que protege el resto del sistema. 
 borra; se desactiva, y la operación se rechaza si dejaría el establecimiento sin administradores
 activos.
 
-### 6.2 Endpoints de F2
+### 6.2 Endpoints de autenticación, usuarios y catálogo
 
 | Método y ruta | Permiso | Notas |
 |---|---|---|
@@ -220,13 +227,29 @@ activos.
 | `POST /api/v1/users` | `users:write` | Contraseña validada por `PasswordPolicy` (400 `WEAK_PASSWORD`) |
 | `GET /api/v1/users/{id}` | `users:read` | Solo del establecimiento del token |
 | `PATCH /api/v1/users/{id}` | `users:write` | Edición parcial; `active:false` es la baja lógica |
+| `GET /api/v1/product-categories` | `inventory:read` | Paginado y ordenado por nombre |
+| `POST /api/v1/product-categories` | `inventory:write` | Nombre único; repetido → 409 `DUPLICATE_NAME` |
+| `GET /api/v1/product-categories/{id}` | `inventory:read` | Solo del establecimiento del token |
+| `PATCH /api/v1/product-categories/{id}` | `inventory:write` | Renombrado; no hay borrado |
+| `GET /api/v1/products` | `inventory:read` | Filtros `active` y `categoryId`, paginado |
+| `POST /api/v1/products` | `inventory:write` | Alta con unidad base y conversiones |
+| `GET /api/v1/products/{id}` | `inventory:read` | Incluye conversiones, stock y alerta de mínimo |
+| `PATCH /api/v1/products/{id}` | `inventory:write` | Edición parcial; archivar exige stock cero |
+| `GET /api/v1/products/{id}/conversions` | `inventory:read` | Conversiones vigentes del producto |
+| `PUT /api/v1/products/{id}/conversions` | `inventory:write` | Reemplaza el conjunto; vacío las elimina |
+| `GET /api/v1/suppliers` | `suppliers:read` | Paginado y ordenado por nombre |
+| `POST /api/v1/suppliers` | `suppliers:write` | Nombre único; repetido → 409 `DUPLICATE_NAME` |
+| `GET /api/v1/suppliers/{id}` | `suppliers:read` | Solo del establecimiento del token |
+| `PATCH /api/v1/suppliers/{id}` | `suppliers:write` | Edición parcial; `active:false` es la baja lógica |
 
 ### 6.3 Auditoría
 
 `audit_logs` es append-only: sin endpoint de edición ni borrado. Se registra en la misma transacción
 que la operación auditada, con `actor_id` tomado del token (`CurrentActor`), nunca del cuerpo de la
 petición. Acciones ya cubiertas: `USER_CREATED`, `USER_UPDATED`, `USER_ROLE_CHANGED`,
-`USER_DEACTIVATED`, `LOGIN_FAILED` y `REFRESH_TOKEN_REUSED`.
+`USER_DEACTIVATED`, `LOGIN_FAILED`, `REFRESH_TOKEN_REUSED`, `CATEGORY_CREATED`, `CATEGORY_UPDATED`,
+`PRODUCT_CREATED`, `PRODUCT_UPDATED`, `PRODUCT_ARCHIVED`, `PRODUCT_CONVERSIONS_UPDATED`,
+`SUPPLIER_CREATED` y `SUPPLIER_UPDATED`.
 
 ### 6.4 Arranque del primer administrador
 
@@ -241,6 +264,10 @@ por defecto. La decisión y sus alternativas están en ADR-019.
 - Errores: `{ "code", "message", "details", "requestId" }`.
 - Paginación: `page` (base 0), `size`; respuesta con `content`, `page`, `size`, `total`.
 - Fechas ISO 8601 en UTC (`2026-10-30T21:30:00Z`).
+- Sin `DELETE` en el catálogo: la baja es `PATCH` con `active=false`. Un producto con stock responde
+  409 `RESOURCE_IN_USE`; un nombre repetido, 409 `DUPLICATE_NAME`.
+- `baseUnit` viaja como `G`, `ML` o `UNIT`. Una unidad de compra incompatible responde 400
+  `UNIT_INCOMPATIBLE`, tanto al configurar el producto como al mover stock.
 - OpenAPI generado; no se documenta a mano en Markdown.
 
 ## 8. Persistencia y rendimiento
