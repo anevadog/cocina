@@ -53,15 +53,43 @@ public final class Quantities {
         if (quantity.signum() <= 0) {
             throw invalid("quantity", "la cantidad debe ser mayor que cero");
         }
+        return stock(quantity.multiply(factorToBase(product, conversions, unit)));
+    }
+
+    /**
+     * Factor de una unidad de compra hacia la unidad base (1 si ya es la unidad base).
+     *
+     * @throws ApiException {@link ErrorCode#UNIT_INCOMPATIBLE} si la unidad no pertenece al producto
+     */
+    public static BigDecimal factorToBase(Product product, List<UnitConversion> conversions,
+            String unit) {
         String normalized = unit == null ? "" : unit.trim().toLowerCase(Locale.ROOT);
         if (BaseUnit.fromLabel(normalized).filter(base -> base == product.baseUnit()).isPresent()) {
-            return stock(quantity);
+            return BigDecimal.ONE;
         }
         return conversions.stream()
                 .filter(conversion -> conversion.unit().equals(normalized))
                 .findFirst()
-                .map(conversion -> stock(quantity.multiply(conversion.factorToBase())))
+                .map(UnitConversion::factorToBase)
                 .orElseThrow(() -> incompatible(product, normalized));
+    }
+
+    /**
+     * Convierte un precio por unidad de compra a coste por unidad base (INV-04, D6).
+     *
+     * <p>Se redondea a la escala monetaria: 12 €/kg en un producto en gramos son 0,0120 €/g.</p>
+     */
+    public static BigDecimal unitCost(BigDecimal unitPrice, BigDecimal factorToBase) {
+        if (unitPrice == null) {
+            throw invalid("unitPrice", "el precio es obligatorio");
+        }
+        if (unitPrice.signum() < 0) {
+            throw invalid("unitPrice", "no puede ser negativo");
+        }
+        if (factorToBase == null || factorToBase.signum() <= 0) {
+            throw invalid("unit", "el factor de conversión no es válido");
+        }
+        return cost(unitPrice.divide(factorToBase, COST_SCALE, ROUNDING));
     }
 
     private static ApiException incompatible(Product product, String unit) {

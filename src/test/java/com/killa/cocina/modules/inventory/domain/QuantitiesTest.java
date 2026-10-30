@@ -75,6 +75,17 @@ class QuantitiesTest {
         assertThat(Quantities.cost(new BigDecimal("12.34565"))).isEqualByComparingTo("12.3457");
     }
 
+    @Test
+    @DisplayName("El precio por unidad de compra se convierte a coste por unidad base")
+    void convierteElPrecioALaUnidadBase() {
+        assertThat(Quantities.unitCost(new BigDecimal("12.00"), new BigDecimal("1000")))
+                .isEqualByComparingTo("0.0120");
+        assertThat(Quantities.unitCost(new BigDecimal("5.99"), new BigDecimal("1000")))
+                .isEqualByComparingTo("0.0060");
+        assertThat(Quantities.factorToBase(CHICKEN, CONVERSIONS, "kg")).isEqualByComparingTo("1000");
+        assertThat(Quantities.factorToBase(CHICKEN, CONVERSIONS, "g")).isEqualByComparingTo("1");
+    }
+
     private static Product product(String name, BaseUnit baseUnit) {
         return new Product(1L, 1L, 1L, name, baseUnit, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, false, true, NOW, NOW);

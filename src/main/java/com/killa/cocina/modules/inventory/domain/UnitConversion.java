@@ -29,7 +29,8 @@ public record UnitConversion(String unit, BigDecimal factorToBase) {
         factorToBase = normalizeFactor(factorToBase, unit);
     }
 
-    private static String normalizeUnit(String unit) {
+    /** Normaliza y valida la etiqueta de una unidad de compra (también la usan los registros). */
+    static String normalizeUnit(String unit) {
         if (unit == null || unit.isBlank()) {
             throw invalid("unit", "la unidad es obligatoria");
         }

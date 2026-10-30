@@ -71,6 +71,9 @@ cocina:
     # El primer administrador solo se crea si hay contraseña y no existe ningún usuario.
     admin-username: ${BOOTSTRAP_ADMIN_USERNAME:admin}
     admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+  inventory:
+    # ADR-025: días de antelación con los que un lote aparece en la alerta de caducidad.
+    expiry-warning-days: ${INVENTORY_EXPIRY_WARNING_DAYS:3}
 
 logging:
   # NFR-OBS-01: logs estructurados (JSON) con el requestId del MDC en cada línea.

@@ -46,6 +46,23 @@ class ProductRepositoryAdapter implements ProductRepository {
     }
 
     @Override
+    public Optional<Product> findForUpdate(long establishmentId, long productId) {
+        return products.findForUpdate(productId, establishmentId).map(ProductEntity::toDomain);
+    }
+
+    @Override
+    public List<Product> lowStock(long establishmentId, int limit) {
+        return products.findLowStock(establishmentId, PageRequest.of(0, limit)).stream()
+                .map(ProductEntity::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long countLowStock(long establishmentId) {
+        return products.countLowStock(establishmentId);
+    }
+
+    @Override
     public Product save(Product product) {
         ProductEntity entity = product.id() == null
                 ? ProductEntity.from(product)

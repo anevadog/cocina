@@ -20,6 +20,13 @@ public record Product(Long id, long establishmentId, long categoryId, String nam
         return active && currentStock.compareTo(minStock) < 0;
     }
 
+    /** Aplica el resultado de un movimiento: nuevo saldo y, si procede, nuevo PMP. */
+    public Product withStock(BigDecimal stock, BigDecimal avgCost, Instant now) {
+        return new Product(id, establishmentId, categoryId, name, baseUnit, minStock,
+                stock == null ? currentStock : stock, avgCost == null ? currentAvgCost : avgCost,
+                allowNegative, active, createdAt, now);
+    }
+
     /** La baja es lógica; el stock debe estar a cero para archivarlo (INV-01). */
     public boolean canBeArchived() {
         return currentStock.signum() == 0;

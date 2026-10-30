@@ -18,6 +18,14 @@ public interface ProductRepository {
     /** Comprueba el nombre excluyendo un producto, para renombrar sin chocar consigo mismo. */
     boolean existsByNameExcluding(long establishmentId, String name, long excludedProductId);
 
+    /** Bloquea el producto para un movimiento de stock (ADR-022). */
+    Optional<Product> findForUpdate(long establishmentId, long productId);
+
+    /** Productos activos por debajo de su mínimo (INV-07). */
+    List<Product> lowStock(long establishmentId, int limit);
+
+    long countLowStock(long establishmentId);
+
     Product save(Product product);
 
     List<Product> search(long establishmentId, ProductFilter filter, int page, int size);
