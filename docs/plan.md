@@ -10,7 +10,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
 | Fase | Contenido | Estado | Estimación |
 |---|---|---|---|
 | F0 | Documentación, decisiones y estructura | [x] Hecho | 1–2 días |
-| F1 | Esqueleto, entorno y CI | [~] En curso (bloque A hecho) | ~1 semana |
+| F1 | Esqueleto, entorno y CI | [x] | ~1 semana |
 | F2 | Auth, usuarios y RBAC | [ ] | ~1 semana |
 | F3 | Inventario, lotes, kardex y PMP | [ ] | ~2 semanas |
 | F4 | Recetas, versiones y costes | [ ] | ~2 semanas |
@@ -57,20 +57,22 @@ Objetivo: una API que arranca, conecta a PostgreSQL y expone health + OpenAPI.
 - [x] springdoc-openapi 3.2.0 (PLA-01)
 - [x] Logs estructurados ECS con `requestId` en el MDC (NFR-OBS-01)
 - [x] ArchUnit: reglas de frontera entre capas y módulos
-- [x] `Dockerfile` multi-stage y `.dockerignore` — **sin verificar**: no hay Docker
+- [x] `Dockerfile` multi-stage y `.dockerignore` — verificado con `docker build` y ejecución real
 - [x] Workflow de CI con `./mvnw verify` — **sin ejecutar en remoto**: no hay remoto
 
-**Bloque B — requiere Docker/WSL2 (pendiente)**
+**Bloque B — PostgreSQL, Flyway y Testcontainers (hecho y verificado)**
 
-- [ ] `compose.yaml` con PostgreSQL 18, volumen y healthcheck
-- [ ] Dependencias de persistencia (JPA, Flyway, driver PostgreSQL) y `ddl-auto: validate`
-- [ ] Flyway: migración `V1__baseline.sql` (solo tablas base necesarias)
-- [ ] `ReadinessIndicator` real que compruebe base de datos y migraciones
-- [ ] Testcontainers contra PostgreSQL real
-- [ ] Verificar `Dockerfile` y ejecutar el workflow de CI
+- [x] `compose.yaml` con PostgreSQL 18, volumen y healthcheck (host: 5433)
+- [x] Dependencias de persistencia (JPA, `spring-boot-starter-flyway`, driver PostgreSQL) y
+  `ddl-auto: validate`
+- [x] Flyway: migración `V1__baseline.sql` (solo `establishments`)
+- [x] `ReadinessIndicator` real que comprueba base de datos y migraciones
+- [x] Testcontainers contra PostgreSQL 18 real
+- [x] `Dockerfile` verificado: imagen, usuario no root y healthcheck `healthy`
+- [ ] Ejecutar el workflow de CI en remoto (requiere publicar el repositorio)
 
-**Riesgo de fase:** Docker/WSL2 aún no instalado en la máquina. Bloquea todo el bloque B y cierra la
-fase, porque no se puede cumplir `./mvnw verify` con la parte de base de datos.
+**Riesgo de fase:** ninguno abierto. La única tarea sin validar es el workflow de CI, que necesita un
+remoto Git; se comprobará al publicar el repositorio.
 
 ## F2 — Auth, usuarios y RBAC
 

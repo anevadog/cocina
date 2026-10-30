@@ -4,8 +4,8 @@ API REST para estandarizar y controlar la operación de la cocina de un restaura
 lotes y caducidades, recetas técnicas versionadas con coste real, producción diaria con descuento
 automático de stock, trazabilidad y permisos por puesto.
 
-**Estado:** F1 en curso. El esqueleto de la API funciona (`/health`, `/ready`, OpenAPI); la parte de
-base de datos está pendiente de Docker. Ver `docs/memoria.md`.
+**Estado:** F1 cerrada. La API arranca, aplica migraciones en PostgreSQL 18 y expone `/health`,
+`/ready` y OpenAPI. Ver `docs/memoria.md`.
 
 ## Documentación
 
@@ -23,12 +23,15 @@ base de datos está pendiente de Docker. Ver `docs/memoria.md`.
 | Herramienta | Versión | Estado en la máquina de desarrollo |
 |---|---|---|
 | JDK (Temurin) | 25 LTS | Instalado |
-| Docker Desktop + WSL2 | actual | **PENDIENTE de instalar** |
+| Docker Desktop + WSL2 | Docker 29.9.2, Compose v5.6.1, WSL 3.0.1.0 | Instalado y verificado |
 | Git | cualquiera reciente | Instalado |
 | Maven | no hace falta | Lo gestiona el wrapper (3.9.16) |
 
 No se necesita instalar Maven ni PostgreSQL de forma nativa: Maven se resuelve con el wrapper y
-PostgreSQL corre en un contenedor.
+PostgreSQL 18 corre en un contenedor.
+
+> **Puerto:** el contenedor se publica en **5433** para no chocar con un PostgreSQL nativo que ya
+> escuche en 5432. Se puede cambiar con `DB_PORT` en `.env`.
 
 ### Instalar Docker (Windows, PowerShell como administrador)
 
@@ -46,34 +49,31 @@ docker compose version
 
 ## Puesta en marcha
 
-La API arranca sin base de datos (todavía no hay persistencia):
-
 ```bash
-./mvnw spring-boot:run                                    # API en http://localhost:8080
+cp .env.example .env          # opcional: valores locales; sin .env se usan los del compose
+docker compose up -d          # PostgreSQL 18 en localhost:5433
+./mvnw spring-boot:run        # API en http://localhost:8080 (aplica las migraciones al arrancar)
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local   # con logs DEBUG
 ```
 
-- Health: `http://localhost:8080/health`
-- Readiness: `http://localhost:8080/ready`
+- Health: `http://localhost:8080/health` (proceso, sin tocar la base de datos)
+- Readiness: `http://localhost:8080/ready` (base de datos y migraciones; 503 si algo está caído)
 - OpenAPI JSON: `http://localhost:8080/v3/api-docs`
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
 
-Cuando exista el bloque de base de datos hará falta además:
-
-```bash
-cp .env.example .env          # ajustar valores locales
-docker compose up -d          # PostgreSQL
-```
+Si el 5433 también estuviera ocupado, cambia `DB_PORT` en `.env` y vuelve a levantar el compose.
 
 ## Comandos habituales
 
 ```bash
-./mvnw verify            # compilar, tests y verificación de arquitectura
-./mvnw test              # solo tests
+./mvnw verify            # compilar, tests (Testcontainers) y verificación de arquitectura
+./mvnw test              # solo tests — necesita Docker en marcha
 ./mvnw spring-boot:run   # arrancar en local
 ./mvnw package           # generar el jar ejecutable en target/
-docker compose ps        # estado de los contenedores (cuando exista compose.yaml)
+docker compose ps        # estado de los contenedores
 docker compose logs -f db
+docker compose down      # parar PostgreSQL (añade -v para borrar los datos)
+docker build -t cocina:local .   # imagen de la aplicación
 ```
 
 En Windows con Git Bash, `./mvnw`; en CMD/PowerShell, `mvnw.cmd`.
@@ -97,11 +97,13 @@ cocina/
 │  └─ modules/                  # un paquete por dominio (aún vacío)
 ├─ src/main/resources/
 │  ├─ application.yml  application-local.yml  application-test.yml
-│  └─ db/migration/             # Flyway (pendiente de F1 bloque B)
+│  └─ db/migration/V1__baseline.sql   # Flyway: tabla establishments
 ├─ src/test/java/com/killa/cocina/
-│  └─ architecture/             # reglas ArchUnit de fronteras entre módulos
-├─ compose.yaml                 # PostgreSQL para desarrollo (pendiente)
-└─ Dockerfile                   # imagen de la aplicación (sin verificar: falta Docker)
+│  ├─ architecture/             # reglas ArchUnit de fronteras entre módulos
+│  ├─ infrastructure/           # migraciones sobre PostgreSQL real
+│  └─ support/                  # contenedor PostgreSQL compartido (Testcontainers)
+├─ compose.yaml                 # PostgreSQL 18 para desarrollo (host: 5433)
+└─ Dockerfile                   # imagen multi-stage, usuario no root, healthcheck
 ```
 
 ## Variables de entorno
