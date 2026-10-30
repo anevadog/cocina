@@ -7,6 +7,7 @@ import com.killa.cocina.modules.users.domain.UserView;
 import com.killa.cocina.shared.error.ApiException;
 import com.killa.cocina.shared.error.ErrorCode;
 import com.killa.cocina.shared.security.CurrentActor;
+import com.killa.cocina.shared.web.PageResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

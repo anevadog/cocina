@@ -38,6 +38,18 @@ public enum ErrorCode {
     /** El nombre de usuario ya está en uso en el establecimiento. */
     USERNAME_TAKEN(409),
 
+    /** Ya existe un recurso con el mismo nombre en el establecimiento. */
+    DUPLICATE_NAME(409),
+
+    /** El recurso está en uso y la operación dejaría datos incoherentes. */
+    RESOURCE_IN_USE(409),
+
+    /** La unidad indicada no pertenece al producto o no es compatible con su unidad base. */
+    UNIT_INCOMPATIBLE(400),
+
+    /** El movimiento dejaría un saldo negativo con la política de bloqueo activa. */
+    INSUFFICIENT_STOCK(409),
+
     /** La cuenta está bloqueada temporalmente por intentos fallidos. */
     ACCOUNT_LOCKED(423),
 

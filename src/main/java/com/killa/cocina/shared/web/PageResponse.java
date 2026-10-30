@@ -1,11 +1,11 @@
-package com.killa.cocina.modules.users.api;
+package com.killa.cocina.shared.web;
 
 import com.killa.cocina.shared.pagination.PageResult;
 import java.util.List;
 import java.util.function.Function;
 
 /**
- * Página del contrato de la API (PLA-03).
+ * Página del contrato de la API (PLA-03), compartida por todos los módulos.
  *
  * <p>El nombre {@code content} es el fijado en {@code docs/arquitectura.md} §7 y coincide con el de
  * Spring Data, para que el cliente no tenga que conocer dos vocabularios.</p>
