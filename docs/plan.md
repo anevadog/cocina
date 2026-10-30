@@ -11,7 +11,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
 |---|---|---|---|
 | F0 | Documentación, decisiones y estructura | [x] Hecho | 1–2 días |
 | F1 | Esqueleto, entorno y CI | [x] | ~1 semana |
-| F2 | Auth, usuarios y RBAC | [ ] | ~1 semana |
+| F2 | Auth, usuarios y RBAC | [x] | ~1 semana |
 | F3 | Inventario, lotes, kardex y PMP | [ ] | ~2 semanas |
 | F4 | Recetas, versiones y costes | [ ] | ~2 semanas |
 | F5 | Producción y descuento automático | [ ] | ~1,5 semanas |
@@ -76,13 +76,13 @@ remoto Git; se comprobará al publicar el repositorio.
 
 ## F2 — Auth, usuarios y RBAC
 
-- [ ] Entidad `app_user` y `establishment` semilla (PER-01)
-- [ ] Argon2id y política de contraseñas (NFR-SEG-01)
-- [ ] Login, refresh rotatorio y logout (NFR-SEG-02)
-- [ ] Matriz de permisos por rol (PER-02, PER-03, PER-05)
-- [ ] `actor_id` en operaciones de negocio (PER-04)
-- [ ] Auditoría base reutilizable (CAL-06)
-- [ ] Tests: acceso denegado, token caducado, refresh reutilizado
+- [x] Entidad `app_user` y `establishment` semilla (PER-01)
+- [x] Argon2id y política de contraseñas (NFR-SEG-01)
+- [x] Login, refresh rotatorio y logout (NFR-SEG-02)
+- [x] Matriz de permisos por rol (PER-02, PER-03, PER-05)
+- [x] `actor_id` en operaciones de negocio (PER-04)
+- [x] Auditoría base reutilizable (CAL-06)
+- [x] Tests: acceso denegado, token caducado, refresh reutilizado
 
 ## F3 — Inventario
 

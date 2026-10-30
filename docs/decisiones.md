@@ -20,6 +20,11 @@ Una entrada por decisión con contexto, opciones, decisión y consecuencias. Est
 | ADR-013 | Paquete base `com.killa.cocina` | Aceptada |
 | ADR-014 | Repositorio en `cocina/`, no en la carpeta de usuario | Aceptada |
 | ADR-015 | Sin Lombok | Aceptada |
+| ADR-016 | Política de contraseñas: longitud mínima, sin caducidad | Aceptada |
+| ADR-017 | Bloqueo temporal de 15 minutos tras 5 intentos | Aceptada |
+| ADR-018 | Refresh token en el cuerpo JSON | Aceptada |
+| ADR-019 | Primer administrador por configuración, no por migración | Aceptada |
+| ADR-020 | Casos de uso transaccionales en `infrastructure` tras un puerto de dominio | Aceptada |
 
 ---
 
@@ -212,3 +217,94 @@ usuario no se usa para el proyecto.
 
 **Consecuencias:** más líneas, menos sorpresas y depuración directa. Si el volumen de mapeo crece, se
 valorará MapStruct, no Lombok.
+
+---
+
+## ADR-016 — Política de contraseñas mínima y verificable
+
+**Contexto:** NFR-SEG-01 exige política mínima y prohíbe registrar contraseñas; el personal de cocina
+no va a usar gestores de contraseñas ni recordará reglas de composición.
+
+**Opciones:** composición obligatoria (mayúsculas, símbolos, caducidad) · longitud mínima sin
+caducidad · frases de paso con lista negra.
+
+**Decisión:** mínimo 12 caracteres y máximo 128; se rechaza que la contraseña coincida con el usuario.
+Sin caducidad periódica ni reglas de composición. Argon2id como función de hash.
+
+**Consecuencias:** menos fricción y menos post-its junto al puesto; la longitud aporta más entropía que
+la composición. Se renuncia a forzar símbolos. Si más adelante se añade lista negra de contraseñas
+filtradas, se hará en `PasswordPolicy` sin tocar el contrato.
+
+---
+
+## ADR-017 — Bloqueo temporal tras cinco intentos fallidos
+
+**Contexto:** NFR-SEG-01 pide bloqueo por intentos; bloquear para siempre exige intervención manual
+del administrador y en una cocina eso significa dejar a alguien sin trabajar.
+
+**Opciones:** bloqueo permanente · bloqueo temporal con caducidad · retardo progresivo sin bloqueo ·
+CAPTCHA (descartado: no hay frontend en el MVP).
+
+**Decisión:** cinco intentos fallidos bloquean la cuenta 15 minutos. El contador y `locked_until` viven
+en `app_users`; al caducar, el siguiente acceso limpia ambos. Un login correcto reinicia el contador.
+Los intentos se registran en auditoría (`LOGIN_FAILED`) y el bloqueo devuelve 423 `ACCOUNT_LOCKED`.
+
+**Consecuencias:** el sistema se protege de fuerza bruta sin dejar cuentas muertas. Un atacante puede
+bloquear a un compañero durante 15 minutos: se acepta el riesgo frente a la alternativa de no tener
+límite. Los fallos se persisten aunque la petición termine en error (`noRollbackFor`), si no el
+contador nunca subiría.
+
+---
+
+## ADR-018 — Refresh token en el cuerpo JSON
+
+**Contexto:** NFR-SEG-02 exige refresh rotatorio revocable; el MVP no tiene frontend, solo consumidores
+de API.
+
+**Opciones:** cookie `HttpOnly` + `SameSite` · cuerpo JSON · cabecera propia.
+
+**Decisión:** el refresh token viaja en el cuerpo JSON de `/auth/login`, `/auth/refresh` y
+`/auth/logout`.
+
+**Consecuencias:** el contrato es simple y funciona igual para un cliente móvil o de escritorio, y el
+token no queda expuesto a CSRF porque no se envía automáticamente. El coste es que el cliente debe
+guardarlo con cuidado; cuando exista frontend web se valorará cookie `HttpOnly` para el refresh.
+
+---
+
+## ADR-019 — Primer administrador por configuración, nunca por migración
+
+**Contexto:** el sistema necesita un administrador inicial y una contraseña escrita en una migración
+sería un secreto en el repositorio.
+
+**Opciones:** usuario y contraseña fijos en la migración · endpoint público de primer arranque ·
+variables de entorno consumidas por un `ApplicationRunner`.
+
+**Decisión:** `AdminBootstrap` crea el administrador solo si no existe ningún usuario y
+`BOOTSTRAP_ADMIN_PASSWORD` tiene valor; el usuario por defecto es `admin` y se puede cambiar con
+`BOOTSTRAP_ADMIN_USERNAME`. El perfil `local` trae una contraseña de desarrollo explícitamente
+marcada; el perfil por defecto no trae ninguna.
+
+**Consecuencias:** ningún secreto en el repositorio y ningún endpoint de arranque expuesto. El
+operador debe definir la variable una vez; si la olvida, el sistema arranca sin administrador y hay
+que reiniciar con ella. El establecimiento semilla se crea de forma idempotente en el mismo paso y la
+secuencia queda sincronizada.
+
+---
+
+## ADR-020 — Casos de uso transaccionales en `infrastructure` tras un puerto de dominio
+
+**Contexto:** AGENTS.md §6 exige `api → domain` e `infrastructure → domain`, y el dominio sin Spring.
+Los casos de uso necesitan `@Transactional`, el codificador de contraseñas y serialización.
+
+**Opciones:** servicios de aplicación en `domain` con Spring (rompe la regla) · controladores con
+lógica y repositorios inyectados (rompe la separación) · interfaces en `domain` e implementación
+transaccional en `infrastructure`.
+
+**Decisión:** la interfaz del caso de uso (`UserService`, `AuthService`) vive en `domain`; la
+implementación con `@Service` y `@Transactional` vive en `infrastructure`. El dominio puede lanzar
+`ApiException` (Java puro) que el manejador global traduce a HTTP.
+
+**Consecuencias:** las reglas puras se prueban sin contexto y `api` no ve JPA. Hay un mapeo adicional
+(dominio ↔ DTO ↔ entidad) y dos interfaces por módulo; a cambio, `ModuleBoundariesTest` se cumple sin
+excepciones y el día que se cambie de persistencia solo se sustituye el adaptador.

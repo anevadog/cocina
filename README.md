@@ -4,8 +4,9 @@ API REST para estandarizar y controlar la operación de la cocina de un restaura
 lotes y caducidades, recetas técnicas versionadas con coste real, producción diaria con descuento
 automático de stock, trazabilidad y permisos por puesto.
 
-**Estado:** F1 cerrada. La API arranca, aplica migraciones en PostgreSQL 18 y expone `/health`,
-`/ready` y OpenAPI. Ver `docs/memoria.md`.
+**Estado:** F2 cerrada. La API arranca, aplica migraciones en PostgreSQL 18, expone `/health`,
+`/ready` y OpenAPI, y ya incluye autenticación JWT con refresh rotatorio, RBAC por rol y auditoría.
+Ver `docs/memoria.md`.
 
 ## Documentación
 
@@ -63,6 +64,23 @@ docker compose up -d          # PostgreSQL 18 en localhost:5433
 
 Si el 5433 también estuviera ocupado, cambia `DB_PORT` en `.env` y vuelve a levantar el compose.
 
+### Primer administrador y arranque seguro
+
+- En el perfil `local` se crea `admin` con la contraseña de desarrollo `cambiar_en_local` (ver
+  `application-local.yml`), solo si la tabla de usuarios está vacía.
+- En cualquier otro perfil la API **no arranca** sin `JWT_SECRET` de al menos 32 bytes, y no crea
+  ningún usuario salvo que definas `BOOTSTRAP_ADMIN_PASSWORD`. No hay credenciales por defecto.
+
+```bash
+# token de acceso
+curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"cambiar_en_local"}'
+
+# uso del token
+curl -s http://localhost:8080/api/v1/users -H "Authorization: Bearer <accessToken>"
+```
+
 ## Comandos habituales
 
 ```bash
@@ -89,18 +107,23 @@ cocina/
 ├─ mvnw  mvnw.cmd  pom.xml
 ├─ src/main/java/com/killa/cocina/
 │  ├─ CocinaApplication.java
-│  ├─ config/                   # reloj UTC y metadatos OpenAPI
+│  ├─ config/                   # reloj UTC, seguridad (JWT), propiedades, bootstrap del admin
 │  ├─ shared/
 │  │  ├─ error/                 # cuerpo de error uniforme (PLA-02)
 │  │  ├─ health/                # /health y /ready (PLA-04)
+│  │  ├─ pagination/            # página independiente de Spring (PLA-03)
+│  │  ├─ security/              # actor autenticado leído del token (PER-04)
 │  │  └─ web/                   # requestId (NFR-OBS-01)
-│  └─ modules/                  # un paquete por dominio (aún vacío)
+│  └─ modules/                  # un paquete por dominio; hoy auth, users y audit
 ├─ src/main/resources/
 │  ├─ application.yml  application-local.yml  application-test.yml
-│  └─ db/migration/V1__baseline.sql   # Flyway: tabla establishments
+│  └─ db/migration/
+│     ├─ V1__baseline.sql          # establishments
+│     └─ V2__users_auth_audit.sql  # app_users, refresh_tokens, audit_logs
 ├─ src/test/java/com/killa/cocina/
-│  ├─ architecture/             # reglas ArchUnit de fronteras entre módulos
+│  ├─ architecture/             # ArchUnit: fronteras y permisos por endpoint
 │  ├─ infrastructure/           # migraciones sobre PostgreSQL real
+│  ├─ modules/                  # dominio puro e integración de auth y users
 │  └─ support/                  # contenedor PostgreSQL compartido (Testcontainers)
 ├─ compose.yaml                 # PostgreSQL 18 para desarrollo (host: 5433)
 └─ Dockerfile                   # imagen multi-stage, usuario no root, healthcheck

@@ -45,10 +45,26 @@ Reglas de dependencia:
 
 `reporting` es de solo lectura: puede consultar vistas o tablas, nunca escribir en otros dominios.
 
+### 2.1 Capas y dónde vive cada cosa
+
+| Capa | Contenido | Puede importar |
+|---|---|---|
+| `domain` | Entidades inmutables (`AppUser`), reglas (`PasswordPolicy`, `Role`), puertos (`UserRepository`, `UserService`) | Java y `com.killa.cocina.shared` |
+| `infrastructure` | Entidades JPA, repositorios Spring Data, adaptadores, **casos de uso transaccionales** (`@Service`), JWT | `domain` propio y de otros módulos, Spring |
+| `api` | Controladores y DTOs `record` | `domain` propio, `shared` |
+
+Regla que se verifica con `ModuleBoundariesTest`: `domain` no importa Spring ni Jakarta Persistence y
+`api` no importa `infrastructure`.
+
+Consecuencia deliberada: los casos de uso (`UserApplicationService`, `AuthApplicationService`) viven
+en `infrastructure` y se publican al API a través de una interfaz del dominio (`UserService`,
+`AuthService`). Así la capa web no toca entidades JPA ni `@Transactional`, y las reglas puras siguen
+probándose sin Spring. El detalle está en ADR-020.
+
 Fuera de `modules` existe el paquete transversal `com.killa.cocina.shared`, que agrupa lo que no
 pertenece a ningún dominio: cuerpo de error uniforme (`shared.error`), correlación de peticiones
-(`shared.web`) y sondas `/health` y `/ready` (`shared.health`). No contiene reglas de negocio y sirve
-igualmente a todos los módulos.
+(`shared.web`), actor autenticado (`shared.security`) y sondas `/health` y `/ready`
+(`shared.health`). No contiene reglas de negocio y sirve igualmente a todos los módulos.
 
 ## 3. Modelo de datos
 
@@ -60,8 +76,8 @@ y `updated_at` en UTC, borrado lógico mediante `active` cuando proceda.
 | Tabla | Campos principales |
 |---|---|
 | `establishments` | `id`, `name`, `timezone`, `currency` |
-| `app_users` | `id`, `establishment_id`, `username`, `full_name`, `password_hash`, `role`, `active` |
-| `refresh_tokens` | `id`, `user_id`, `token_hash`, `expires_at`, `revoked_at`, `replaced_by` |
+| `app_users` | `id`, `establishment_id`, `username`, `full_name`, `password_hash`, `role`, `active`, `failed_attempts`, `locked_until`; único `(establishment_id, username)` |
+| `refresh_tokens` | `id`, `establishment_id`, `user_id`, `token_hash`, `expires_at`, `revoked_at`, `replaced_by`; único `token_hash` |
 | `audit_logs` | `id`, `establishment_id`, `actor_id`, `action`, `entity_type`, `entity_id`, `before_json`, `after_json`, `occurred_at` |
 
 Roles: `ADMIN`, `KITCHEN_MANAGER`, `COOK`, `STOREKEEPER`.
@@ -161,19 +177,69 @@ histórico sigue siendo reproducible.
 
 ## 6. Seguridad
 
-- `Authorization: Bearer <access token>`; endpoints públicos: `/health`, `/ready`, `/api/v1/auth/**`.
-- `@PreAuthorize` por acción; permission set centralizado y probado.
-- Un endpoint sin anotación se considera cerrado (test de cobertura de seguridad).
-- Refresh token almacenado como hash; rotación y detección de reutilización.
-- Errores sin filtrar detalles internos; `requestId` para correlación.
+- `Authorization: Bearer <access token>`; endpoints públicos: `/health`, `/ready`, `/v3/api-docs/**`,
+  `/swagger-ui/**` y `POST /api/v1/auth/{login,refresh,logout}`.
+- `@PreAuthorize` por acción; permission set centralizado en `Permission` y `Role`, probado con
+  `RoleMatrixTest`. Cada permiso viaja en el claim `authorities` del token.
+- Un endpoint sin anotación se considera cerrado: `EndpointAuthorizationTest` falla si aparece uno, y
+  cualquier otra ruta exige autenticación (`anyRequest().authenticated()`).
+- Refresh token opaco de 256 bits almacenado como hash SHA-256; rotación en cada uso y detección de
+  reutilización: si se presenta un token ya rotado, se revoca la familia completa del usuario.
+- Access token JWT HS256 de 15 minutos (`SecuritySettings` rechaza vidas mayores). Sin sesión ni
+  cookies: `SessionCreationPolicy.STATELESS`.
+- Contraseñas Argon2id; política mínima de 12 caracteres y bloqueo de 15 minutos tras 5 fallos
+  (ADR-016, ADR-017). El bloqueo caduca solo y reinicia el contador.
+- Errores sin filtrar detalles internos; `requestId` para correlación. El 401 y el 403 se emiten con
+  el mismo cuerpo uniforme desde la cadena de filtros.
 - Datos personales mínimos: nombre de usuario y nombre visible. Sin DNI, sin fichajes.
+
+### 6.1 Matriz de permisos
+
+| Permiso | ADMIN | KITCHEN_MANAGER | COOK | STOREKEEPER |
+|---|:--:|:--:|:--:|:--:|
+| `users:read` / `users:write` | ✔ / ✔ | ✔ / — | — / — | — / — |
+| `inventory:read` / `inventory:write` | ✔ / ✔ | ✔ / ✔ | ✔ / — | ✔ / ✔ |
+| `suppliers:read` / `suppliers:write` | ✔ / ✔ | ✔ / ✔ | — / — | ✔ / ✔ |
+| `recipes:read` / `recipes:write` | ✔ / ✔ | ✔ / ✔ | ✔ / — | ✔ / — |
+| `production:read` / `production:write` | ✔ / ✔ | ✔ / ✔ | ✔ / ✔ | — / — |
+| `quality:read` / `quality:write` | ✔ / ✔ | ✔ / ✔ | ✔ / ✔ | ✔ / — |
+| `reporting:read` | ✔ | ✔ | ✔ | ✔ |
+
+Solo `ADMIN` escribe usuarios: es la frontera que protege el resto del sistema. Un usuario nunca se
+borra; se desactiva, y la operación se rechaza si dejaría el establecimiento sin administradores
+activos.
+
+### 6.2 Endpoints de F2
+
+| Método y ruta | Permiso | Notas |
+|---|---|---|
+| `POST /api/v1/auth/login` | público | Devuelve `accessToken`, `refreshToken` y caducidades |
+| `POST /api/v1/auth/refresh` | público (refresh token) | Rota el refresh; reutilizar uno rotado revoca la familia |
+| `POST /api/v1/auth/logout` | público (refresh token) | Idempotente; revoca el refresh presentado |
+| `GET /api/v1/users` | `users:read` | Paginado (`page` base 0, `size` máximo 100) |
+| `POST /api/v1/users` | `users:write` | Contraseña validada por `PasswordPolicy` (400 `WEAK_PASSWORD`) |
+| `GET /api/v1/users/{id}` | `users:read` | Solo del establecimiento del token |
+| `PATCH /api/v1/users/{id}` | `users:write` | Edición parcial; `active:false` es la baja lógica |
+
+### 6.3 Auditoría
+
+`audit_logs` es append-only: sin endpoint de edición ni borrado. Se registra en la misma transacción
+que la operación auditada, con `actor_id` tomado del token (`CurrentActor`), nunca del cuerpo de la
+petición. Acciones ya cubiertas: `USER_CREATED`, `USER_UPDATED`, `USER_ROLE_CHANGED`,
+`USER_DEACTIVATED`, `LOGIN_FAILED` y `REFRESH_TOKEN_REUSED`.
+
+### 6.4 Arranque del primer administrador
+
+`AdminBootstrap` garantiza la fila de `establishments` y crea un `ADMIN` solo si no hay ningún usuario
+y existe `BOOTSTRAP_ADMIN_PASSWORD`. Sin contraseña configurada no se crea nada: no hay credenciales
+por defecto. La decisión y sus alternativas están en ADR-019.
 
 ## 7. API
 
 - Prefijo `/api/v1`.
 - Recursos en plural: `/products`, `/recipes`, `/production-plans`.
 - Errores: `{ "code", "message", "details", "requestId" }`.
-- Paginación: `page`, `size`, `sort`; respuesta con `content`, `page`, `size`, `total`.
+- Paginación: `page` (base 0), `size`; respuesta con `content`, `page`, `size`, `total`.
 - Fechas ISO 8601 en UTC (`2026-10-30T21:30:00Z`).
 - OpenAPI generado; no se documenta a mano en Markdown.
 
