@@ -1,0 +1,30 @@
+name: cocina
+
+services:
+  db:
+    image: postgres:18
+    container_name: cocina-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cocina}
+      POSTGRES_USER: ${POSTGRES_USER:-cocina}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cambiar_en_local}
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      # 5433 en el host: el 5432 suele estar ocupado por un PostgreSQL nativo de la máquina.
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      # En la imagen de PostgreSQL 18 el volumen declarado es /var/lib/postgresql y PGDATA
+      # apunta a /var/lib/postgresql/18/docker. Montar /data no persiste nada.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      # Los $$ evitan que Compose interpole las variables: las expande el shell del contenedor.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  db-data:

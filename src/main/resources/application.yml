@@ -1,6 +1,24 @@
 spring:
   application:
     name: cocina-api
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${POSTGRES_DB:cocina}
+    username: ${POSTGRES_USER:cocina}
+    password: ${POSTGRES_PASSWORD:cambiar_en_local}
+    hikari:
+      maximum-pool-size: 10
+  jpa:
+    # El esquema solo lo cambia Flyway: Hibernate únicamente valida.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        # Instantes en UTC, independientemente de la zona de la máquina (PLA-06).
+        jdbc:
+          time_zone: UTC
+  flyway:
+    locations: classpath:db/migration
   jackson:
     time-zone: UTC
     datatype:

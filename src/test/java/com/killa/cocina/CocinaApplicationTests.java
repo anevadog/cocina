@@ -4,15 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.killa.cocina.shared.health.ReadinessController;
 import com.killa.cocina.shared.web.RequestIdFilter;
+import com.killa.cocina.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
-import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
-@ActiveProfiles("test")
-class CocinaApplicationTests {
+class CocinaApplicationTests extends AbstractIntegrationTest {
 
     @Autowired
     private ApplicationContext context;
