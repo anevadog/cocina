@@ -1,0 +1,17 @@
+package com.killa.cocina.modules.audit.domain;
+
+/**
+ * Acciones sensibles que se auditan (CAL-06).
+ *
+ * <p>El valor se guarda tal cual en {@code audit_logs.action}; añadir una acción no exige migración
+ * porque la columna es texto libre validado aquí.</p>
+ */
+public enum AuditAction {
+
+    USER_CREATED,
+    USER_UPDATED,
+    USER_ROLE_CHANGED,
+    USER_DEACTIVATED,
+    LOGIN_FAILED,
+    REFRESH_TOKEN_REUSED
+}

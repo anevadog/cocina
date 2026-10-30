@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -108,6 +110,30 @@ public class GlobalExceptionHandler {
         }
         ErrorCode code = status.is4xxClientError() ? ErrorCode.RESOURCE_NOT_FOUND : ErrorCode.INTERNAL_ERROR;
         return build(status, code, defaultMessage(exception.getReason()), List.of(), request);
+    }
+
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ApiError> onApiException(ApiException exception, HttpServletRequest request) {
+        HttpStatus status = HttpStatus.resolve(exception.code().httpStatus());
+        if (status == null) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        return build(status, exception.code(), defaultMessage(exception.getMessage()),
+                exception.details(), request);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> onAccessDenied(AccessDeniedException exception,
+            HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, ErrorCode.FORBIDDEN,
+                "No tienes permiso para realizar esta operación.", List.of(), request);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiError> onAuthentication(AuthenticationException exception,
+            HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED,
+                "Necesitas autenticarte para acceder a este recurso.", List.of(), request);
     }
 
     @ExceptionHandler(Exception.class)

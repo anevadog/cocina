@@ -3,6 +3,20 @@ spring:
   main:
     banner-mode: off
 
+cocina:
+  security:
+    jwt:
+      # Secreto de test, público a propósito: no protege nada real.
+      secret: test-only-secret-for-integration-tests-0123456789
+      access-ttl: 15m
+      refresh-ttl: 30d
+    login:
+      max-failed-attempts: 5
+      lock-duration: 15m
+  bootstrap:
+    # Sin contraseña: los tests crean sus propios usuarios de forma explícita.
+    admin-password: ""
+
 logging:
   level:
     root: WARN

@@ -1,5 +1,17 @@
 # Perfil de desarrollo local.
 # Arranque: ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+#
+# Los valores de esta sección son DELIBERADAMENTE inseguros y solo existen para que el entorno
+# local arranque sin configuración manual. Nunca se usa este perfil en producción.
+cocina:
+  security:
+    jwt:
+      # Solo desarrollo: 48 caracteres repetidos, longitud suficiente para HS256.
+      secret: ${JWT_SECRET:local-development-only-secret-change-me-0123456789}
+  bootstrap:
+    # Contraseña de desarrollo para el primer administrador. Cámbiala antes de usar datos reales.
+    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:cambiar_en_local}
+
 logging:
   level:
     root: INFO

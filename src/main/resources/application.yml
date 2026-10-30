@@ -49,6 +49,29 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: alpha
 
+cocina:
+  # Establecimiento activo. El MVP es de un solo establecimiento: el id se resuelve aquí y se
+  # propaga a todas las operaciones y a los tokens.
+  establishment:
+    id: ${ESTABLISHMENT_ID:1}
+    name: ${ESTABLISHMENT_NAME:Cocina}
+    timezone: ${APP_TIMEZONE:Europe/Madrid}
+    currency: EUR
+  security:
+    jwt:
+      # Sin secreto la API no arranca (ver SecurityConfig). Nunca debe haber un valor por defecto
+      # en el perfil por defecto: un secreto conocido permitiría firmar tokens válidos.
+      secret: ${JWT_SECRET:}
+      access-ttl: ${JWT_ACCESS_TTL:15m}
+      refresh-ttl: ${JWT_REFRESH_TTL:30d}
+    login:
+      max-failed-attempts: 5
+      lock-duration: 15m
+  bootstrap:
+    # El primer administrador solo se crea si hay contraseña y no existe ningún usuario.
+    admin-username: ${BOOTSTRAP_ADMIN_USERNAME:admin}
+    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+
 logging:
   # NFR-OBS-01: logs estructurados (JSON) con el requestId del MDC en cada línea.
   structured:

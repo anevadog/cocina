@@ -22,6 +22,7 @@
     <java.version>25</java.version>
     <springdoc.version>3.2.0</springdoc.version>
     <archunit.version>1.5.1</archunit.version>
+    <bouncycastle.version>1.86</bouncycastle.version>
   </properties>
 
   <dependencies>
@@ -41,6 +42,22 @@
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
       <version>${springdoc.version}</version>
     </dependency>
+    <!-- Seguridad: autenticación por JWT y autorización por permisos (PER-02, PER-03). -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+    </dependency>
+    <!-- Argon2id (NFR-SEG-01): el codificador de Spring Security lo necesita en tiempo de ejecución. -->
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>${bouncycastle.version}</version>
+    </dependency>
+
     <!-- Persistencia y migraciones (PLA-05). -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
