@@ -44,6 +44,9 @@ public enum ErrorCode {
     /** El recurso está en uso y la operación dejaría datos incoherentes. */
     RESOURCE_IN_USE(409),
 
+    /** El recurso es inmutable: una versión publicada no se edita, se versiona. */
+    RESOURCE_IMMUTABLE(409),
+
     /** La unidad indicada no pertenece al producto o no es compatible con su unidad base. */
     UNIT_INCOMPATIBLE(400),
 

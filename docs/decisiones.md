@@ -36,6 +36,8 @@ Una entrada por decisión con contexto, opciones, decisión y consecuencias. Est
 | ADR-029 | Fechas de recepción, caducidad y `occurred_at` del movimiento | Aceptada |
 | ADR-030 | Los ajustes de salida consumen lotes FIFO, incluidos los caducados | Aceptada |
 | ADR-031 | Una fila de auditoría por movimiento y otra si cambia el coste | Aceptada |
+| ADR-032 | Spotless para el formato y JaCoCo en modo informe (P5) | Aceptada |
+| ADR-033 | Cantidad por ración, merma aditiva y un único redondeo al escalar | Aceptada |
 
 ---
 
@@ -549,3 +551,26 @@ introducir un servicio externo ni una cifra de cobertura inventada. El primer in
 instrucciones, 90,2 % de líneas y 66,1 % de ramas. Error Prone/NullAway queda fuera hasta comprobar su
 compatibilidad con JDK 25 y Spring Boot 4.1; el umbral de cobertura se decidirá cuando haya datos de
 varias fases.
+
+---
+
+## ADR-033 — Cantidad por ración, merma aditiva y un único redondeo al escalar
+
+**Contexto:** REC-01 exige que cantidades y coste sean siempre por ración base y REC-02 que la merma
+altere consumo y coste de forma verificable. REC-03 exige un escalado determinista (250 g × 3 = 750 g).
+Hay dos formas de guardar la composición (por ración o por lote) y dos de aplicar la merma (sobre la
+cantidad neta o sobre el bruto); elegirlas mal obliga a reinterpretar todos los datos después.
+
+**Opciones:** cantidad del lote base (B) frente a cantidad por ración (A) · merma aditiva
+`q × (1 + m/100)` frente a merma por rendimiento `q / (1 − m/100)`.
+
+**Decisión:** la cantidad se guarda **por ración** en la unidad base del producto; `base_rations` es
+el rendimiento del lote y `total_cost = cost_per_ration × base_rations`. La merma es **aditiva**: el
+consumo por ración es `q × (1 + m/100)`. La expansión se calcula con aritmética exacta y se redondea
+una sola vez al final, a 3 decimales; el coste, a 4 y `HALF_UP` (ADR-021). Una misma función
+(`RecipeExpansion`) alimenta el escalado, el congelado de coste y, en F5, el descuento de producción.
+
+**Consecuencias:** el coste por ración coincide literalmente con la suma de cantidad × coste unitario
+(REC-04) y el escalado es reproducible al miligramo. La merma se explica como «un 10 % más» y no como
+un descuento del bruto; eso queda documentado para no confundirla con el rendimiento de cocción
+(`yield_pct`), que es informativo y no altera el coste.

@@ -118,11 +118,15 @@ unidad base: 12 €/kg en un producto en gramos son 0,0120 €/g.
 | Tabla | Campos principales |
 |---|---|
 | `recipes` | `id`, `establishment_id`, `name`, `category`, `active`, `current_version_id` |
-| `recipe_versions` | `id`, `recipe_id`, `version_number`, `status`, `base_rations`, `total_cost`, `cost_per_ration`, `instructions`, `published_at`, `published_by` |
-| `recipe_items` | `id`, `version_id`, `product_id`, `quantity_base`, `waste_pct`, `sort_order` |
+| `recipe_versions` | `id`, `establishment_id`, `recipe_id`, `version_number`, `status`, `base_rations`, `yield_pct`, `prep_time_minutes`, `total_cost`, `cost_per_ration`, `instructions`, `published_at`, `published_by`, `created_by` |
+| `recipe_items` | `id`, `establishment_id`, `version_id`, `product_id`, `quantity_base`, `waste_pct`, `sort_order` |
 
 `status`: `DRAFT`, `PUBLISHED`, `ARCHIVED`. Una versión `PUBLISHED` no se modifica; los cambios
-generan una versión nueva que referencia a la anterior.
+generan una versión nueva que referencia a la anterior y hay **como máximo un borrador por receta**
+(índice único parcial). `quantity_base` es la cantidad **por ración** en unidad base y `waste_pct` se
+suma a ella (ADR-033); `base_rations` es el rendimiento del lote y `yield_pct` el rendimiento tras
+cocción, informativo. `current_version_id` apunta a la última versión publicada y solo se actualiza al
+publicar. La inmutabilidad se protege con triggers, igual que el kardex.
 
 ### 3.4 Producción
 
