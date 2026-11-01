@@ -12,8 +12,8 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
 | F0 | Documentación, decisiones y estructura | [x] Hecho | 1–2 días |
 | F1 | Esqueleto, entorno y CI | [x] | ~1 semana |
 | F2 | Auth, usuarios y RBAC | [x] | ~1 semana |
-| F3 | Inventario, lotes, kardex y PMP | [~] Bloque C | ~2 semanas |
-| F4 | Recetas, versiones y costes | [ ] | ~2 semanas |
+| F3 | Inventario, lotes, kardex y PMP | [x] | ~2 semanas |
+| F4 | Recetas, versiones y costes | [x] | ~2 semanas |
 | F5 | Producción y descuento automático | [ ] | ~1,5 semanas |
 | F6 | Calidad y trazabilidad | [ ] | ~1,5 semanas |
 | F7 | Informes, endurecimiento y despliegue | [ ] | ~2 semanas |
@@ -111,12 +111,26 @@ remoto Git; se comprobará al publicar el repositorio.
 
 ## F4 — Recetas
 
-- [ ] CRUD de recetas en borrador (REC-01)
-- [ ] Ingredientes, merma y escalado (REC-02, REC-03)
-- [ ] Cálculo de coste por ración y congelado al publicar (REC-04)
-- [ ] Publicación y versionado inmutable (REC-05)
-- [ ] Consulta de coste histórico (ECO-01)
-- [ ] Tests de redondeo y de inmutabilidad
+**Bloque A — esquema y borradores (hecho y verificado)**
+
+- [x] CRUD de recetas en borrador (REC-01)
+- [x] Ingredientes, merma y conversión a unidad base (REC-02)
+- [x] Un solo borrador por receta y borrador descartable (REC-05)
+
+**Bloque B — coste y escalado (hecho y verificado)**
+
+- [x] Cálculo de coste por ración y coste actual con el PMP vigente (REC-04)
+- [x] Escalado a N raciones con redondeo determinista (REC-03)
+
+**Bloque C — publicación e inmutabilidad (hecho y verificado)**
+
+- [x] Publicación con congelado del coste y bloqueo ordenado de productos (REC-04, REC-05)
+- [x] Versiones publicadas inmutables: API y triggers de BD (REC-05)
+- [x] Clonado con ingredientes, historial y versión vigente (REC-05)
+- [x] Consulta de coste histórico (ECO-01)
+- [x] Tests de redondeo, merma e inmutabilidad
+
+**Fase cerrada.**
 
 ## F5 — Producción
 

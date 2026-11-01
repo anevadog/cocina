@@ -38,6 +38,8 @@ Una entrada por decisión con contexto, opciones, decisión y consecuencias. Est
 | ADR-031 | Una fila de auditoría por movimiento y otra si cambia el coste | Aceptada |
 | ADR-032 | Spotless para el formato y JaCoCo en modo informe (P5) | Aceptada |
 | ADR-033 | Cantidad por ración, merma aditiva y un único redondeo al escalar | Aceptada |
+| ADR-034 | Borrador editable y versión publicada inmutable | Aceptada |
+| ADR-035 | El coste se congela con los productos bloqueados en orden | Aceptada |
 
 ---
 
@@ -574,3 +576,50 @@ una sola vez al final, a 3 decimales; el coste, a 4 y `HALF_UP` (ADR-021). Una m
 (REC-04) y el escalado es reproducible al miligramo. La merma se explica como «un 10 % más» y no como
 un descuento del bruto; eso queda documentado para no confundirla con el rendimiento de cocción
 (`yield_pct`), que es informativo y no altera el coste.
+
+---
+
+## ADR-034 — Borrador editable y versión publicada inmutable
+
+**Contexto:** REC-05 exige versionado inmutable para que una producción pasada siga siendo explicable.
+Hay dos extremos: no versionar (editar en sitio siempre, perdiendo el histórico) o versionar todo al
+mínimo cambio (ruido y fricción para quien cocina). Además, si una receta puede tener varias ramas de
+borrador, «el borrador» deja de ser un concepto único y la API se vuelve ambigua.
+
+**Opciones:** un borrador editable y publicadas inmutables (A) · varios borradores simultáneos (B) ·
+sin borrador, solo versiones publicadas (C).
+
+**Decisión:** (A). Cada receta tiene como máximo **un** `DRAFT`, garantizado por un índice único
+parcial en BD, no solo por la aplicación. El borrador se edita en sitio con `PATCH` y `PUT items`; al
+publicar pasa a `PUBLISHED` y queda inmutable en la aplicación y en la base de datos. `POST /versions`
+clona la última versión con sus ingredientes. El borrador se puede descartar; la única versión de una
+receta, no: para retirarla se archiva la receta, que conserva todo el historial.
+
+**Consecuencias:** el flujo diario es barato (editar y publicar) sin perder trazabilidad, y dos
+personas no pueden construir versiones paralelas sin acordarlo. La inmutabilidad no depende del código:
+los triggers de V5 rechazan `UPDATE` y `DELETE` de una versión publicada y de sus ingredientes, incluso
+por SQL directo. `recipes.current_version_id` marca la vigente; las publicadas anteriores siguen
+`PUBLISHED` en el historial y no se reescriben.
+
+---
+
+## ADR-035 — El coste se congela con los productos bloqueados en orden
+
+**Contexto:** publicar congela el PMP del momento. Si la lectura del coste y la escritura de la versión
+no forman un corte consistente, una compra concurrente puede dejar el coste congelado calculado con
+precios de dos instantes distintos. Si además dos publicaciones bloquean los mismos productos en orden
+distinto, pueden interbloquearse.
+
+**Opciones:** leer sin bloquear y aceptar el coste «casi» del momento (A) · bloquear en orden de
+`product_id` (B) · bloquear toda la tabla de productos (C).
+
+**Decisión:** (B). Antes de calcular, se bloquean con `SELECT … FOR UPDATE` los productos implicados,
+siempre en orden ascendente de `product_id`, y el coste se calcula con esas filas ya bloqueadas, dentro
+de la transacción que escribe la versión y `current_version_id`. Es el mismo criterio que el descuento
+de producción de F5 (arquitectura §4.3), así que no hay dos políticas de bloqueo conviviendo.
+
+**Consecuencias:** el coste congelado es reproducible y dos publicaciones simultáneas no se
+interbloquean. El precio a pagar es que publicar bloquea durante un instante los productos de la receta
+—aceptable porque publicar es una acción poco frecuente y de una sola persona— y no se puede publicar
+mientras una compra mantiene el lock de un producto de esa receta: la segunda espera, no falla.
+

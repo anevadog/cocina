@@ -196,9 +196,22 @@ operaciones de varios productos (F5), el orden de bloqueo por `product_id` sigue
 
 ### 4.4 Coste de una receta
 
-- Al publicar: congelar `total_cost` y `cost_per_ration` en `recipe_versions`.
-- En consulta: recalcular con el PMP vigente si se pide "coste actual".
+```text
+consumo_i(N)  = round(q_i × (1 + merma_i/100) × N, 3)
+coste_ración  = round(Σ consumo_i(1) × coste_base_i, 4)
+coste_lote(N) = round(coste_ración × N, 4)
+```
+
+- `q_i` es la cantidad **por ración** en unidad base y `coste_base_i` el PMP vigente por unidad base
+  (ADR-033). El redondeo ocurre una sola vez por magnitud, con las escalas de `Quantities` (3 y 4
+  decimales, `HALF_UP`).
+- Al publicar se congelan `cost_per_ration` y `total_cost` en `recipe_versions`, con un corte
+  consistente del PMP: los productos implicados se bloquean en orden de `product_id` (ADR-035).
+- En consulta se devuelven las dos cifras: `frozen*` (solo en publicadas) y `current*` (siempre, con
+  el PMP de hoy). Un borrador no tiene coste congelado.
 - Un informe histórico usa el coste congelado, nunca el precio de hoy.
+- Si falta el coste de algún ingrediente, `current*` vale `null` y se listan los productos que faltan:
+  no se publica una cifra a medias. Publicar exige coste completo.
 
 ### 4.5 Versionado
 
@@ -206,8 +219,26 @@ operaciones de varios productos (F5), el orden de bloqueo por `product_id` sigue
 REC-001 v1 (PUBLISHED) ──► REC-001 v2 (PUBLISHED) ──► REC-001 v3 (DRAFT)
 ```
 
-Nunca se actualiza una versión publicada. Las producciones guardan `recipe_version_id`, por lo que el
-histórico sigue siendo reproducible.
+1. `POST /recipes` crea la receta con su v1 en `DRAFT`.
+2. El borrador se edita **en sitio**: cabecera (`PATCH`) e ingredientes (`PUT items`).
+3. Solo puede haber **un borrador por receta** (índice único parcial en BD).
+4. `POST /versions` clona la última versión, incluidos sus ingredientes, como nuevo `DRAFT`.
+5. `POST /publish` exige ≥1 ingrediente, sin productos repetidos, receta activa y todos los productos
+   activos; congela el coste y actualiza `recipes.current_version_id`.
+6. `DELETE /versions/{id}` solo descarta borradores y nunca la única versión de la receta.
+
+Nunca se actualiza una versión publicada: la API responde `RESOURCE_IMMUTABLE(409)` y los triggers de
+la migración V5 rechazan `UPDATE`/`DELETE` de la versión y de sus ingredientes, también por SQL
+directo. Las producciones guardan `recipe_version_id`, por lo que el histórico sigue siendo
+reproducible. Una receta no se borra: se archiva con `active=false`.
+
+### 4.6 Escalado y merma
+
+`GET /recipes/{id}/versions/{versionId}/scale?rations=N` es una consulta de solo lectura: expande los
+ingredientes a N raciones, devuelve el coste del lote y **no** congela nada. La merma es aditiva
+(`q × (1 + m/100)`, máximo 99,99 %) y se aplica antes de escalar; el rendimiento tras cocción
+(`yield_pct`) es informativo y no altera el coste. La misma expansión alimenta el descuento de
+producción de F5, agregando por producto.
 
 ## 5. Multi-tenencia
 
