@@ -7,9 +7,12 @@ import com.killa.cocina.shared.error.ApiException;
 import com.killa.cocina.shared.error.ErrorCode;
 import com.killa.cocina.shared.security.CurrentActor;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/v1/recipes/{recipeId}/versions")
+@Validated
 public class RecipeVersionController {
 
     private final RecipeService recipeService;
@@ -100,6 +105,19 @@ public class RecipeVersionController {
     public void deleteDraft(@PathVariable long recipeId, @PathVariable long versionId) {
         CurrentActor.Actor actor = requireActor();
         recipeService.deleteDraft(actor.establishmentId(), actor.userId(), recipeId, versionId);
+    }
+
+    @GetMapping("/{versionId}/scale")
+    @PreAuthorize("hasAuthority('recipes:read')")
+    public ScaledRecipeResponse scale(
+            @PathVariable long recipeId,
+            @PathVariable long versionId,
+            @RequestParam
+                    @Min(value = 1, message = "debe ser al menos 1")
+                    @Max(value = 10000, message = "no puede superar 10000")
+                    int rations) {
+        CurrentActor.Actor actor = requireActor();
+        return ScaledRecipeResponse.from(recipeService.scale(actor.establishmentId(), recipeId, versionId, rations));
     }
 
     private CurrentActor.Actor requireActor() {

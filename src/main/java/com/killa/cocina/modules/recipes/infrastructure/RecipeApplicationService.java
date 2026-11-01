@@ -5,6 +5,8 @@ import com.killa.cocina.modules.audit.domain.AuditRecorder;
 import com.killa.cocina.modules.recipes.domain.IngredientCatalog;
 import com.killa.cocina.modules.recipes.domain.IngredientProduct;
 import com.killa.cocina.modules.recipes.domain.Recipe;
+import com.killa.cocina.modules.recipes.domain.RecipeCost;
+import com.killa.cocina.modules.recipes.domain.RecipeExpansion;
 import com.killa.cocina.modules.recipes.domain.RecipeFilter;
 import com.killa.cocina.modules.recipes.domain.RecipeItem;
 import com.killa.cocina.modules.recipes.domain.RecipeItemRegistration;
@@ -20,9 +22,12 @@ import com.killa.cocina.modules.recipes.domain.RecipeVersionRepository;
 import com.killa.cocina.modules.recipes.domain.RecipeVersionSummary;
 import com.killa.cocina.modules.recipes.domain.RecipeVersionView;
 import com.killa.cocina.modules.recipes.domain.RecipeView;
+import com.killa.cocina.modules.recipes.domain.ScaledIngredient;
+import com.killa.cocina.modules.recipes.domain.ScaledRecipe;
 import com.killa.cocina.shared.error.ApiException;
 import com.killa.cocina.shared.error.ErrorCode;
 import com.killa.cocina.shared.pagination.PageResult;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -271,6 +276,43 @@ public class RecipeApplicationService implements RecipeService {
                 null);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ScaledRecipe scale(long establishmentId, long recipeId, long versionId, int rations) {
+        int requested = RecipeExpansion.rations(rations);
+        requireRecipe(establishmentId, recipeId);
+        RecipeVersion version = requireVersion(establishmentId, recipeId, versionId);
+
+        Map<Long, IngredientProduct> products = new HashMap<>();
+        List<RecipeItem> items = recipeItems.findByVersion(version.id());
+        Map<Long, BigDecimal> costs = unitCosts(establishmentId, items, products);
+        RecipeCost cost = RecipeExpansion.costPerRation(items, costs);
+
+        List<ScaledIngredient> expanded = new ArrayList<>(items.size());
+        for (RecipeItem item : items) {
+            IngredientProduct product = productOf(establishmentId, item.productId(), products);
+            BigDecimal unitCost = costs.get(item.productId());
+            BigDecimal quantity = RecipeExpansion.consumption(item.quantityBase(), item.wastePct(), requested);
+            expanded.add(new ScaledIngredient(
+                    item.productId(),
+                    product == null ? "Producto " + item.productId() : product.name(),
+                    product == null ? "?" : product.baseUnit(),
+                    quantity,
+                    item.wastePct(),
+                    unitCost,
+                    RecipeExpansion.lineCost(quantity, unitCost)));
+        }
+        return new ScaledRecipe(
+                recipeId,
+                version.id(),
+                version.versionNumber(),
+                requested,
+                cost.perRation(),
+                RecipeExpansion.batchCost(cost.perRation(), requested),
+                cost.missingProducts(),
+                expanded);
+    }
+
     private RecipeView viewOf(Recipe recipe) {
         RecipeVersion current = recipe.currentVersionId() == null
                 ? null
@@ -290,9 +332,12 @@ public class RecipeApplicationService implements RecipeService {
     }
 
     private RecipeVersionView versionView(long establishmentId, RecipeVersion version) {
-        List<RecipeItemView> itemViews = recipeItems.findByVersion(version.id()).stream()
-                .map(item -> itemView(establishmentId, item, new HashMap<>()))
+        Map<Long, IngredientProduct> products = new HashMap<>();
+        List<RecipeItem> items = recipeItems.findByVersion(version.id());
+        List<RecipeItemView> itemViews = items.stream()
+                .map(item -> itemView(item, productOf(establishmentId, item.productId(), products)))
                 .toList();
+        RecipeCost current = RecipeExpansion.costPerRation(items, unitCosts(establishmentId, items, products));
         return new RecipeVersionView(
                 version.id(),
                 version.recipeId(),
@@ -309,15 +354,12 @@ public class RecipeApplicationService implements RecipeService {
                 version.updatedAt(),
                 version.totalCost(),
                 version.costPerRation(),
-                null,
-                null,
+                RecipeExpansion.batchCost(current.perRation(), version.baseRations()),
+                current.perRation(),
                 itemViews);
     }
 
-    private RecipeItemView itemView(long establishmentId, RecipeItem item, Map<Long, IngredientProduct> cache) {
-        IngredientProduct product = cache.computeIfAbsent(
-                item.productId(),
-                productId -> ingredients.find(establishmentId, productId).orElse(null));
+    private RecipeItemView itemView(RecipeItem item, IngredientProduct product) {
         return new RecipeItemView(
                 item.id(),
                 item.productId(),
@@ -326,6 +368,23 @@ public class RecipeApplicationService implements RecipeService {
                 item.quantityBase(),
                 item.wastePct(),
                 item.sortOrder());
+    }
+
+    private IngredientProduct productOf(long establishmentId, long productId, Map<Long, IngredientProduct> cache) {
+        return cache.computeIfAbsent(
+                productId, key -> ingredients.find(establishmentId, key).orElse(null));
+    }
+
+    private Map<Long, BigDecimal> unitCosts(
+            long establishmentId, List<RecipeItem> items, Map<Long, IngredientProduct> cache) {
+        Map<Long, BigDecimal> costs = new HashMap<>();
+        for (RecipeItem item : items) {
+            IngredientProduct product = productOf(establishmentId, item.productId(), cache);
+            if (product != null && product.currentCost() != null) {
+                costs.put(item.productId(), product.currentCost());
+            }
+        }
+        return costs;
     }
 
     private Recipe requireRecipe(long establishmentId, long recipeId) {

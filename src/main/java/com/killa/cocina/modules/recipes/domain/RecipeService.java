@@ -40,4 +40,11 @@ public interface RecipeService {
 
     /** Descarta un borrador. Una versión publicada nunca se borra. */
     void deleteDraft(long establishmentId, Long actorId, long recipeId, long versionId);
+
+    /**
+     * Escala una versión a N raciones sin persistir nada (REC-03).
+     *
+     * <p>Usa siempre el coste vigente: escalar no congela coste, publicar sí.</p>
+     */
+    ScaledRecipe scale(long establishmentId, long recipeId, long versionId, int rations);
 }
