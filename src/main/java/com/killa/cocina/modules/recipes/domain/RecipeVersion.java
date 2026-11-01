@@ -1,5 +1,7 @@
 package com.killa.cocina.modules.recipes.domain;
 
+import com.killa.cocina.shared.error.ApiException;
+import com.killa.cocina.shared.error.ErrorCode;
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -79,6 +81,37 @@ public record RecipeVersion(
 
     public boolean isDraft() {
         return status.isDraft();
+    }
+
+    /**
+     * Publica el borrador congelando sus costes (REC-04, REC-05).
+     *
+     * <p>La versión resultante ya no se edita: cualquier cambio exige una versión nueva. El coste se
+     * calcula con el PMP bloqueado en la misma transacción (ADR-035).</p>
+     */
+    public RecipeVersion publish(BigDecimal totalCost, BigDecimal costPerRation, long publishedBy, Instant now) {
+        if (!isDraft()) {
+            throw new ApiException(
+                    ErrorCode.RESOURCE_IMMUTABLE,
+                    "La versión " + versionNumber + " ya está publicada y no se puede volver a publicar.");
+        }
+        return new RecipeVersion(
+                id,
+                establishmentId,
+                recipeId,
+                versionNumber,
+                RecipeVersionStatus.PUBLISHED,
+                baseRations,
+                yieldPct,
+                prepTimeMinutes,
+                instructions,
+                totalCost,
+                costPerRation,
+                now,
+                publishedBy,
+                createdBy,
+                createdAt,
+                now);
     }
 
     /** Sustituye la cabecera de un borrador; los valores llegan ya resueltos y validados. */

@@ -42,6 +42,14 @@ public interface RecipeService {
     void deleteDraft(long establishmentId, Long actorId, long recipeId, long versionId);
 
     /**
+     * Publica un borrador y congela su coste (REC-04, REC-05).
+     *
+     * <p>Bloquea los productos implicados en orden de {@code productId} para que el coste congelado
+     * sea un corte consistente del PMP (ADR-035).</p>
+     */
+    RecipeVersionView publish(long establishmentId, Long actorId, long recipeId, long versionId);
+
+    /**
      * Escala una versión a N raciones sin persistir nada (REC-03).
      *
      * <p>Usa siempre el coste vigente: escalar no congela coste, publicar sí.</p>

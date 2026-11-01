@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -274,6 +275,83 @@ public class RecipeApplicationService implements RecipeService {
                 version.id(),
                 versionSnapshot(version),
                 null);
+    }
+
+    @Override
+    public RecipeVersionView publish(long establishmentId, Long actorId, long recipeId, long versionId) {
+        long actor = requireActor(actorId);
+        Recipe recipe = requireRecipe(establishmentId, recipeId);
+        RecipeVersion version = requireVersion(establishmentId, recipeId, versionId);
+        if (!version.isDraft()) {
+            throw new ApiException(
+                    ErrorCode.RESOURCE_IMMUTABLE,
+                    "La versión " + version.versionNumber() + " ya está publicada y no se puede volver a publicar.");
+        }
+        if (!recipe.active()) {
+            throw new ApiException(
+                    ErrorCode.RESOURCE_IN_USE,
+                    "La receta '" + recipe.name() + "' está archivada: actívala antes de publicar.");
+        }
+
+        List<RecipeItem> items = recipeItems.findByVersion(version.id());
+        if (items.isEmpty()) {
+            throw new ApiException(ErrorCode.RESOURCE_IN_USE, "No se puede publicar una versión sin ingredientes.");
+        }
+        Set<Long> productIds = new LinkedHashSet<>();
+        for (RecipeItem item : items) {
+            productIds.add(item.productId());
+        }
+        if (productIds.size() != items.size()) {
+            throw new ApiException(
+                    ErrorCode.RESOURCE_IN_USE, "No se puede publicar una versión con un producto repetido.");
+        }
+
+        // Bloqueo ordenado por product_id: el coste congelado es un corte consistente del PMP y dos
+        // publicaciones simultáneas no se interbloquean (ADR-035).
+        List<IngredientProduct> locked = ingredients.findForUpdate(establishmentId, productIds);
+        Map<Long, IngredientProduct> byId = new HashMap<>();
+        for (IngredientProduct product : locked) {
+            byId.put(product.id(), product);
+        }
+        for (Long productId : productIds) {
+            IngredientProduct product = byId.get(productId);
+            if (product == null) {
+                throw new ApiException(
+                        ErrorCode.RESOURCE_IN_USE, "No se puede publicar: el producto " + productId + " no existe.");
+            }
+            if (!product.active()) {
+                throw new ApiException(
+                        ErrorCode.RESOURCE_IN_USE,
+                        "No se puede publicar: el producto '" + product.name() + "' está archivado.");
+            }
+        }
+
+        Map<Long, BigDecimal> costs = new HashMap<>();
+        for (IngredientProduct product : locked) {
+            if (product.currentCost() != null) {
+                costs.put(product.id(), product.currentCost());
+            }
+        }
+        RecipeCost cost = RecipeExpansion.costPerRation(items, costs);
+        if (!cost.complete()) {
+            throw new ApiException(
+                    ErrorCode.RESOURCE_IN_USE,
+                    "No se puede publicar: falta el coste de los productos " + cost.missingProducts() + ".");
+        }
+
+        Instant now = Instant.now(clock);
+        RecipeVersion published = versions.save(version.publish(
+                RecipeExpansion.batchCost(cost.perRation(), version.baseRations()), cost.perRation(), actor, now));
+        recipes.save(recipe.withCurrentVersion(published.id(), now));
+        audit.record(
+                establishmentId,
+                actor,
+                AuditAction.RECIPE_VERSION_PUBLISHED,
+                "recipe_version",
+                published.id(),
+                versionSnapshot(version),
+                versionSnapshot(published));
+        return versionView(establishmentId, published);
     }
 
     @Override

@@ -107,6 +107,14 @@ public class RecipeVersionController {
         recipeService.deleteDraft(actor.establishmentId(), actor.userId(), recipeId, versionId);
     }
 
+    @PostMapping("/{versionId}/publish")
+    @PreAuthorize("hasAuthority('recipes:write')")
+    public RecipeVersionResponse publish(@PathVariable long recipeId, @PathVariable long versionId) {
+        CurrentActor.Actor actor = requireActor();
+        return RecipeVersionResponse.from(
+                recipeService.publish(actor.establishmentId(), actor.userId(), recipeId, versionId));
+    }
+
     @GetMapping("/{versionId}/scale")
     @PreAuthorize("hasAuthority('recipes:read')")
     public ScaledRecipeResponse scale(
