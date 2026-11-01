@@ -4,11 +4,11 @@ API REST para estandarizar y controlar la operación de la cocina de un restaura
 lotes y caducidades, recetas técnicas versionadas con coste real, producción diaria con descuento
 automático de stock, trazabilidad y permisos por puesto.
 
-**Estado:** F3 en curso (bloques A y B cerrados). La API arranca, aplica migraciones V1–V4 en
-PostgreSQL 18, expone `/health`, `/ready` y OpenAPI, e incluye autenticación JWT con refresh rotatorio,
-RBAC por rol, auditoría, el catálogo de inventario (categorías, productos, conversiones y proveedores)
-y los movimientos de stock (compras con lote y caducidad, ajustes con motivo, kardex inmutable, PMP y
-alertas). Ver `docs/memoria.md`.
+**Estado:** F3 cerrada (bloques A, B y C). La API arranca, aplica migraciones V1–V4 en PostgreSQL 18,
+expone `/health`, `/ready` y OpenAPI, e incluye autenticación JWT con refresh rotatorio, RBAC por rol,
+auditoría, el catálogo de inventario (categorías, productos, conversiones y proveedores) y los
+movimientos de stock (compras con lote y caducidad, ajustes con motivo, kardex inmutable, PMP, alertas
+y concurrencia verificada). Ver `docs/memoria.md`.
 
 ## Documentación
 
@@ -86,8 +86,9 @@ curl -s http://localhost:8080/api/v1/users -H "Authorization: Bearer <accessToke
 ## Comandos habituales
 
 ```bash
-./mvnw verify            # compilar, tests (Testcontainers) y verificación de arquitectura
+./mvnw verify            # compilar, tests (Testcontainers), formato, arquitectura y cobertura
 ./mvnw test              # solo tests — necesita Docker en marcha
+./mvnw spotless:apply    # formatear el código (Spotless + palantir-java-format)
 ./mvnw spring-boot:run   # arrancar en local
 ./mvnw package           # generar el jar ejecutable en target/
 docker compose ps        # estado de los contenedores
@@ -97,6 +98,9 @@ docker build -t cocina:local .   # imagen de la aplicación
 ```
 
 En Windows con Git Bash, `./mvnw`; en CMD/PowerShell, `mvnw.cmd`.
+
+El informe de cobertura queda en `target/site/jacoco/index.html`; `verify` no impone un umbral
+(ADR-032). Si `spotless:check` falla, ejecuta `./mvnw spotless:apply` y revisa el diff.
 
 ## Estructura del repositorio
 
@@ -116,16 +120,18 @@ cocina/
 │  │  ├─ pagination/            # página independiente de Spring (PLA-03)
 │  │  ├─ security/              # actor autenticado leído del token (PER-04)
 │  │  └─ web/                   # requestId (NFR-OBS-01)
-│  └─ modules/                  # un paquete por dominio; hoy auth, users y audit
+│  └─ modules/                  # un paquete por dominio; hoy auth, users, audit, inventory y suppliers
 ├─ src/main/resources/
 │  ├─ application.yml  application-local.yml  application-test.yml
 │  └─ db/migration/
-│     ├─ V1__baseline.sql          # establishments
-│     └─ V2__users_auth_audit.sql  # app_users, refresh_tokens, audit_logs
+│     ├─ V1__baseline.sql             # establishments
+│     ├─ V2__users_auth_audit.sql     # app_users, refresh_tokens, audit_logs
+│     ├─ V3__inventory_catalog.sql    # categorías, productos, conversiones y proveedores
+│     └─ V4__inventory_movements.sql  # lotes, kardex inmutable y trigger
 ├─ src/test/java/com/killa/cocina/
 │  ├─ architecture/             # ArchUnit: fronteras y permisos por endpoint
 │  ├─ infrastructure/           # migraciones sobre PostgreSQL real
-│  ├─ modules/                  # dominio puro e integración de auth y users
+│  ├─ modules/                  # dominio puro e integración de auth, users e inventory
 │  └─ support/                  # contenedor PostgreSQL compartido (Testcontainers)
 ├─ compose.yaml                 # PostgreSQL 18 para desarrollo (host: 5433)
 └─ Dockerfile                   # imagen multi-stage, usuario no root, healthcheck
@@ -139,6 +145,7 @@ Ver `.env.example`. Nunca se commitea `.env` ni secretos reales.
 
 - Código en inglés; documentación y mensajes de API en español.
 - Conventional Commits.
+- Formato con Spotless (`./mvnw spotless:apply`); `verify` lo comprueba (ADR-032).
 - Migraciones Flyway; `ddl-auto: validate`.
 - Cantidades y dinero con `BigDecimal` (`numeric(12,3)` / `numeric(12,4)`).
 

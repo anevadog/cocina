@@ -101,11 +101,13 @@ remoto Git; se comprobará al publicar el repositorio.
 - [x] Política de stock negativo (INV-08)
 - [x] Alertas de mínimo y caducidad (INV-07, ECO-06)
 
-**Pendiente de la fase**
+**Bloque C — concurrencia (hecho y verificado)**
 
-- [ ] Bloque C: concurrencia y pruebas de carga sobre movimientos simultáneos (NFR-INT-01)
+- [x] Movimientos simultáneos sobre el mismo producto sin perder actualizaciones (NFR-INT-01)
+- [x] Salidas concurrentes sin cruzar el stock negativo (INV-08, NFR-INT-01)
+- [x] Compras simultáneas con PMP correcto (INV-09)
 
-**Fase crítica.** Si el stock no es exacto aquí, todo lo posterior es decorativo.
+**Fase cerrada.** Si el stock no es exacto aquí, todo lo posterior es decorativo.
 
 ## F4 — Recetas
 

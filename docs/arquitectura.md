@@ -173,6 +173,12 @@ Una recepción de compra no puede quedar en un producto archivado ni en un prove
    `INSUFFICIENT_STOCK` sin escribir nada.
 6. Actualizar `current_stock`, insertar el movimiento con su motivo y auditar.
 
+**Concurrencia (NFR-INT-01).** El bloqueo de la fila del producto serializa las entradas y salidas del
+mismo producto: dos descuentos simultáneos no pueden leer el mismo saldo, y el segundo vuelve a
+comprobarlo antes de escribir. `StockConcurrencyIntegrationTest` lo verifica con ocho y diez hilos
+reales contra PostgreSQL: sin actualizaciones perdidas, sin stock negativo y con el PMP correcto. En
+operaciones de varios productos (F5), el orden de bloqueo por `product_id` sigue siendo obligatorio.
+
 ### 4.3 Descuento por producción
 
 1. Cargar la versión de receta usada (nunca la "actual": la que se registró).

@@ -526,3 +526,26 @@ el PMP cambia, se añade una fila `STOCK_COST_CHANGED` referida a `product`.
 buscar cambios de coste sin recorrer todo el kardex. La auditoría duplica información derivable del
 propio kardex a propósito: es un registro independiente y no debe depender de que el kardex se
 interprete bien.
+
+---
+
+## ADR-032 — Spotless para el formato y JaCoCo en modo informe (P5)
+
+**Contexto:** P5 quedó abierta al cerrar F1. `./mvnw verify` compilaba y ejecutaba tests, pero no
+fijaba formato, análisis estático ni cobertura. Con F3 cerrada y F4 a la vista, el código ya es
+suficiente para que el estilo se diversifique; corregirlo después cuesta más.
+
+**Opciones:** no añadir nada (D) · Spotless + JaCoCo sin umbral (A) · A + umbral de cobertura y Maven
+Enforcer (B) · B + Error Prone/NullAway (C).
+
+**Decisión:** Spotless 3.10.4 con `palantir-java-format` 2.103.0 (4 espacios, 100 columnas), más
+`trimTrailingWhitespace` y `endWithNewline`. La comprobación (`spotless:check`) se ejecuta en `verify`,
+así que el CI la hereda sin cambios; `./mvnw spotless:apply` corrige. JaCoCo 0.8.16 genera el informe
+en `verify` (`target/site/jacoco/index.html`), sin objetivo `check` ni umbral que rompa el build. El
+primer reformateo va en un commit propio para no mezclar ruido con cambios funcionales.
+
+**Consecuencias:** un solo estilo verificable y una cobertura visible desde el primer día, sin
+introducir un servicio externo ni una cifra de cobertura inventada. El primer informe da 89,7 % de
+instrucciones, 90,2 % de líneas y 66,1 % de ramas. Error Prone/NullAway queda fuera hasta comprobar su
+compatibilidad con JDK 25 y Spring Boot 4.1; el umbral de cobertura se decidirá cuando haya datos de
+varias fases.
