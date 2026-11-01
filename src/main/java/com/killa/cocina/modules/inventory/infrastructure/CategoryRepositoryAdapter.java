@@ -20,7 +20,8 @@ class CategoryRepositoryAdapter implements CategoryRepository {
 
     @Override
     public Optional<Category> findById(long establishmentId, long categoryId) {
-        return categories.findByIdAndEstablishmentId(categoryId, establishmentId)
+        return categories
+                .findByIdAndEstablishmentId(categoryId, establishmentId)
                 .map(CategoryEntity::toDomain);
     }
 
@@ -31,8 +32,7 @@ class CategoryRepositoryAdapter implements CategoryRepository {
 
     @Override
     public boolean existsByNameExcluding(long establishmentId, String name, long excludedCategoryId) {
-        return categories.existsByEstablishmentIdAndNameAndIdNot(establishmentId, name,
-                excludedCategoryId);
+        return categories.existsByEstablishmentIdAndNameAndIdNot(establishmentId, name, excludedCategoryId);
     }
 
     @Override
@@ -48,7 +48,9 @@ class CategoryRepositoryAdapter implements CategoryRepository {
 
     @Override
     public List<Category> findAll(long establishmentId, int page, int size) {
-        return categories.findByEstablishmentIdOrderByNameAsc(establishmentId,
+        return categories
+                .findByEstablishmentIdOrderByNameAsc(
+                        establishmentId,
                         PageRequest.of(page, size, Sort.by("name").ascending()))
                 .stream()
                 .map(CategoryEntity::toDomain)

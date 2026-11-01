@@ -48,10 +48,12 @@ public class SupplierController {
     @PreAuthorize("hasAuthority('suppliers:read')")
     public PageResponse<SupplierResponse> list(
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "no puede ser negativo") int page,
-            @RequestParam(defaultValue = "20") @Min(value = 1, message = "debe ser al menos 1") @Max(value = 100, message = "no puede superar 100") int size) {
+            @RequestParam(defaultValue = "20")
+                    @Min(value = 1, message = "debe ser al menos 1")
+                    @Max(value = 100, message = "no puede superar 100")
+                    int size) {
         CurrentActor.Actor actor = requireActor();
-        return PageResponse.from(supplierService.list(actor.establishmentId(), page, size),
-                SupplierResponse::from);
+        return PageResponse.from(supplierService.list(actor.establishmentId(), page, size), SupplierResponse::from);
     }
 
     @PostMapping
@@ -59,8 +61,8 @@ public class SupplierController {
     @PreAuthorize("hasAuthority('suppliers:write')")
     public SupplierResponse create(@Valid @RequestBody CreateSupplierRequest request) {
         CurrentActor.Actor actor = requireActor();
-        SupplierView created = supplierService.create(actor.establishmentId(), actor.userId(),
-                new SupplierRegistration(request.name(), request.contact()));
+        SupplierView created = supplierService.create(
+                actor.establishmentId(), actor.userId(), new SupplierRegistration(request.name(), request.contact()));
         return SupplierResponse.from(created);
     }
 
@@ -73,16 +75,20 @@ public class SupplierController {
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('suppliers:write')")
-    public SupplierResponse update(@PathVariable long id,
-            @Valid @RequestBody UpdateSupplierRequest request) {
+    public SupplierResponse update(@PathVariable long id, @Valid @RequestBody UpdateSupplierRequest request) {
         CurrentActor.Actor actor = requireActor();
-        SupplierView updated = supplierService.update(actor.establishmentId(), actor.userId(), id,
+        SupplierView updated = supplierService.update(
+                actor.establishmentId(),
+                actor.userId(),
+                id,
                 new SupplierModification(request.name(), request.contact(), request.active()));
         return SupplierResponse.from(updated);
     }
 
     private CurrentActor.Actor requireActor() {
-        return currentActor.find().orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED,
-                "Necesitas autenticarte para acceder a este recurso."));
+        return currentActor
+                .find()
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.UNAUTHORIZED, "Necesitas autenticarte para acceder a este recurso."));
     }
 }

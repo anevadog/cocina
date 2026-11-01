@@ -38,8 +38,7 @@ public class SupplierEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected SupplierEntity() {
-    }
+    protected SupplierEntity() {}
 
     private SupplierEntity(Supplier supplier) {
         apply(supplier);

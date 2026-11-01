@@ -25,8 +25,7 @@ class RefreshTokenRepositoryAdapter implements RefreshTokenRepository {
     public RefreshToken save(RefreshToken token) {
         RefreshTokenEntity entity = token.id() == null
                 ? RefreshTokenEntity.from(token)
-                : repository.findById(token.id())
-                        .orElseGet(() -> RefreshTokenEntity.from(token));
+                : repository.findById(token.id()).orElseGet(() -> RefreshTokenEntity.from(token));
         if (token.id() != null) {
             entity.apply(token);
         }

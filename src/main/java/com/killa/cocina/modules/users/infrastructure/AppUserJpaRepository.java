@@ -19,6 +19,5 @@ interface AppUserJpaRepository extends JpaRepository<AppUserEntity, Long> {
 
     long countByEstablishmentId(long establishmentId);
 
-    long countByEstablishmentIdAndRoleAndActiveTrueAndIdNot(long establishmentId, Role role,
-            long excludedId);
+    long countByEstablishmentIdAndRoleAndActiveTrueAndIdNot(long establishmentId, Role role, long excludedId);
 }

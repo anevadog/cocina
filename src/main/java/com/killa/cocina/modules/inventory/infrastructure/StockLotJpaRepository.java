@@ -23,8 +23,8 @@ interface StockLotJpaRepository extends JpaRepository<StockLotEntity, Long> {
             order by case when l.expiresAt is null then 1 else 0 end,
                      l.expiresAt asc, l.receivedAt asc, l.id asc
             """)
-    List<StockLotEntity> findConsumable(@Param("establishmentId") long establishmentId,
-            @Param("productId") long productId);
+    List<StockLotEntity> findConsumable(
+            @Param("establishmentId") long establishmentId, @Param("productId") long productId);
 
     List<StockLotEntity> findByEstablishmentIdAndProductIdOrderByReceivedAtDescIdDesc(
             long establishmentId, long productId, Pageable pageable);
@@ -41,8 +41,8 @@ interface StockLotJpaRepository extends JpaRepository<StockLotEntity, Long> {
               and l.expiresAt <= :until
             order by l.expiresAt asc, l.id asc
             """)
-    List<Object[]> findExpiring(@Param("establishmentId") long establishmentId,
-            @Param("until") java.time.Instant until, Pageable pageable);
+    List<Object[]> findExpiring(
+            @Param("establishmentId") long establishmentId, @Param("until") java.time.Instant until, Pageable pageable);
 
     @Query("""
             select count(l) from StockLotEntity l
@@ -51,6 +51,5 @@ interface StockLotJpaRepository extends JpaRepository<StockLotEntity, Long> {
               and l.expiresAt is not null
               and l.expiresAt <= :until
             """)
-    long countExpiring(@Param("establishmentId") long establishmentId,
-            @Param("until") java.time.Instant until);
+    long countExpiring(@Param("establishmentId") long establishmentId, @Param("until") java.time.Instant until);
 }

@@ -26,14 +26,14 @@ public class ApiErrorWriter {
         this.objectMapper = objectMapper;
     }
 
-    public void write(HttpServletRequest request, HttpServletResponse response, HttpStatus status,
-            ErrorCode code, String message) throws IOException {
+    public void write(
+            HttpServletRequest request, HttpServletResponse response, HttpStatus status, ErrorCode code, String message)
+            throws IOException {
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         String requestId = RequestIdFilter.currentRequestId(request);
-        ApiError body = new ApiError(code.name(), message, List.of(),
-                requestId == null ? "desconocido" : requestId);
+        ApiError body = new ApiError(code.name(), message, List.of(), requestId == null ? "desconocido" : requestId);
         objectMapper.writeValue(response.getOutputStream(), body);
     }
 }

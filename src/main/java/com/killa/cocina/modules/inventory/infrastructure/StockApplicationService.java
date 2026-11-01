@@ -74,9 +74,15 @@ public class StockApplicationService implements StockService {
 
     private final InventoryProperties inventory;
 
-    public StockApplicationService(ProductRepository products, StockLotRepository lots,
-            StockMovementRepository movements, SupplierRepository suppliers, AuditRecorder audit,
-            ObjectMapper objectMapper, Clock clock, InventoryProperties inventory) {
+    public StockApplicationService(
+            ProductRepository products,
+            StockLotRepository lots,
+            StockMovementRepository movements,
+            SupplierRepository suppliers,
+            AuditRecorder audit,
+            ObjectMapper objectMapper,
+            Clock clock,
+            InventoryProperties inventory) {
         this.products = products;
         this.lots = lots;
         this.movements = movements;
@@ -88,8 +94,8 @@ public class StockApplicationService implements StockService {
     }
 
     @Override
-    public PurchaseResult purchase(long establishmentId, Long actorId, long productId,
-            PurchaseRegistration registration) {
+    public PurchaseResult purchase(
+            long establishmentId, Long actorId, long productId, PurchaseRegistration registration) {
         long actor = requireActor(actorId);
         Instant now = Instant.now(clock);
         Product product = requireActiveForUpdate(establishmentId, productId);
@@ -98,50 +104,79 @@ public class StockApplicationService implements StockService {
 
         List<UnitConversion> conversions = products.conversions(productId);
         BigDecimal factor = Quantities.factorToBase(product, conversions, registration.unit());
-        BigDecimal quantityBase = Quantities.toBase(product, conversions, registration.quantity(),
-                registration.unit());
+        BigDecimal quantityBase = Quantities.toBase(product, conversions, registration.quantity(), registration.unit());
         BigDecimal unitCost = Quantities.unitCost(registration.unitPrice(), factor);
 
-        StockLot lot = lots.save(StockLot.create(establishmentId, productId,
-                registration.supplierId(), schedule.receivedAt(), schedule.expiresAt(), unitCost,
-                quantityBase, now));
+        StockLot lot = lots.save(StockLot.create(
+                establishmentId,
+                productId,
+                registration.supplierId(),
+                schedule.receivedAt(),
+                schedule.expiresAt(),
+                unitCost,
+                quantityBase,
+                now));
         BigDecimal newStock = Quantities.stock(product.currentStock().add(quantityBase));
         BigDecimal newAvgCost = Valuation.averageCost(product, quantityBase, unitCost);
         Product updated = products.save(product.withStock(newStock, newAvgCost, now));
-        StockMovement movement = movements.save(new StockMovement(null, establishmentId, productId,
-                lot.id(), MovementType.PURCHASE_IN, quantityBase, unitCost, newStock, null, null,
-                null, actor, schedule.receivedAt()));
+        StockMovement movement = movements.save(new StockMovement(
+                null,
+                establishmentId,
+                productId,
+                lot.id(),
+                MovementType.PURCHASE_IN,
+                quantityBase,
+                unitCost,
+                newStock,
+                null,
+                null,
+                null,
+                actor,
+                schedule.receivedAt()));
 
-        audit.record(establishmentId, actor, AuditAction.STOCK_PURCHASE_RECORDED,
-                "stock_movement", movement.id(), stockSnapshot(product), stockSnapshot(updated));
+        audit.record(
+                establishmentId,
+                actor,
+                AuditAction.STOCK_PURCHASE_RECORDED,
+                "stock_movement",
+                movement.id(),
+                stockSnapshot(product),
+                stockSnapshot(updated));
         if (product.currentAvgCost().compareTo(updated.currentAvgCost()) != 0) {
-            audit.record(establishmentId, actor, AuditAction.STOCK_COST_CHANGED, "product",
-                    productId, costSnapshot(product), costSnapshot(updated));
+            audit.record(
+                    establishmentId,
+                    actor,
+                    AuditAction.STOCK_COST_CHANGED,
+                    "product",
+                    productId,
+                    costSnapshot(product),
+                    costSnapshot(updated));
         }
         return PurchaseResult.from(lot, movement, updated);
     }
 
     @Override
-    public StockChangeResult adjust(long establishmentId, Long actorId, long productId,
-            AdjustmentRegistration registration) {
+    public StockChangeResult adjust(
+            long establishmentId, Long actorId, long productId, AdjustmentRegistration registration) {
         long actor = requireActor(actorId);
         Instant now = Instant.now(clock);
         Product product = requireActiveForUpdate(establishmentId, productId);
-        BigDecimal quantityBase = Quantities.toBase(product, products.conversions(productId),
-                registration.quantity(), registration.unit());
+        BigDecimal quantityBase = Quantities.toBase(
+                product, products.conversions(productId), registration.quantity(), registration.unit());
         BigDecimal unitCost = product.currentAvgCost();
 
         BigDecimal newStock;
         Long lotId = null;
         if (registration.type().isInbound()) {
             newStock = Quantities.stock(product.currentStock().add(quantityBase));
-            StockLot lot = lots.save(StockLot.create(establishmentId, productId, null, now, null,
-                    unitCost, quantityBase, now));
+            StockLot lot = lots.save(
+                    StockLot.create(establishmentId, productId, null, now, null, unitCost, quantityBase, now));
             lotId = lot.id();
         } else {
             newStock = Quantities.stock(product.currentStock().subtract(quantityBase));
             if (newStock.signum() < 0 && !product.allowNegative()) {
-                throw new ApiException(ErrorCode.INSUFFICIENT_STOCK,
+                throw new ApiException(
+                        ErrorCode.INSUFFICIENT_STOCK,
                         "El ajuste dejaría un saldo negativo en '" + product.name()
                                 + "'. El producto no admite stock negativo.");
             }
@@ -149,25 +184,43 @@ public class StockApplicationService implements StockService {
         }
 
         Product updated = products.save(product.withStock(newStock, unitCost, now));
-        StockMovement movement = movements.save(new StockMovement(null, establishmentId, productId,
-                lotId, registration.type(), quantityBase, unitCost, newStock, registration.reason(),
-                null, null, actor, now));
+        StockMovement movement = movements.save(new StockMovement(
+                null,
+                establishmentId,
+                productId,
+                lotId,
+                registration.type(),
+                quantityBase,
+                unitCost,
+                newStock,
+                registration.reason(),
+                null,
+                null,
+                actor,
+                now));
 
-        audit.record(establishmentId, actor, AuditAction.STOCK_ADJUSTMENT_RECORDED,
-                "stock_movement", movement.id(), stockSnapshot(product), stockSnapshot(updated));
+        audit.record(
+                establishmentId,
+                actor,
+                AuditAction.STOCK_ADJUSTMENT_RECORDED,
+                "stock_movement",
+                movement.id(),
+                stockSnapshot(product),
+                stockSnapshot(updated));
         return StockChangeResult.from(movement, updated);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResult<StockMovement> movements(long establishmentId, long productId, int page,
-            int size) {
+    public PageResult<StockMovement> movements(long establishmentId, long productId, int page, int size) {
         requireProduct(establishmentId, productId);
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
         return new PageResult<>(
                 movements.findByProduct(establishmentId, productId, safePage, safeSize),
-                movements.countByProduct(establishmentId, productId), safePage, safeSize);
+                movements.countByProduct(establishmentId, productId),
+                safePage,
+                safeSize);
     }
 
     @Override
@@ -176,8 +229,11 @@ public class StockApplicationService implements StockService {
         requireProduct(establishmentId, productId);
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
-        return new PageResult<>(lots.findByProduct(establishmentId, productId, safePage, safeSize),
-                lots.countByProduct(establishmentId, productId), safePage, safeSize);
+        return new PageResult<>(
+                lots.findByProduct(establishmentId, productId, safePage, safeSize),
+                lots.countByProduct(establishmentId, productId),
+                safePage,
+                safeSize);
     }
 
     @Override
@@ -187,17 +243,24 @@ public class StockApplicationService implements StockService {
         Instant until = now.plus(Duration.ofDays(inventory.expiryWarningDays()));
 
         List<LowStockAlert> lowStock = products.lowStock(establishmentId, ALERT_LIMIT).stream()
-                .map(product -> new LowStockAlert(product.id(), product.name(),
-                        product.currentStock(), product.minStock()))
+                .map(product ->
+                        new LowStockAlert(product.id(), product.name(), product.currentStock(), product.minStock()))
                 .toList();
-        List<ExpiringLotAlert> expiring = lots.findExpiring(establishmentId, until, ALERT_LIMIT)
-                .stream()
-                .map(row -> new ExpiringLotAlert(row.lotId(), row.productId(), row.productName(),
-                        row.expiresAt(), ChronoUnit.DAYS.between(now, row.expiresAt()),
-                        row.remainingQty(), row.unitCost(),
+        List<ExpiringLotAlert> expiring = lots.findExpiring(establishmentId, until, ALERT_LIMIT).stream()
+                .map(row -> new ExpiringLotAlert(
+                        row.lotId(),
+                        row.productId(),
+                        row.productName(),
+                        row.expiresAt(),
+                        ChronoUnit.DAYS.between(now, row.expiresAt()),
+                        row.remainingQty(),
+                        row.unitCost(),
                         Quantities.cost(row.remainingQty().multiply(row.unitCost()))))
                 .toList();
-        return new InventoryAlerts(lowStock, products.countLowStock(establishmentId), expiring,
+        return new InventoryAlerts(
+                lowStock,
+                products.countLowStock(establishmentId),
+                expiring,
                 lots.countExpiring(establishmentId, until));
     }
 
@@ -218,53 +281,57 @@ public class StockApplicationService implements StockService {
         if (remaining.signum() > 0) {
             // Solo puede ocurrir con datos cargados fuera del API: current_stock manda sobre el
             // desglose de lotes. Se deja rastro para poder corregir el inventario físico.
-            log.warn("Ajuste de salida sin lotes suficientes [establishmentId={}, productId={}, "
-                    + "cantidad sin lote={}]", establishmentId, productId, remaining.toPlainString());
+            log.warn(
+                    "Ajuste de salida sin lotes suficientes [establishmentId={}, productId={}, "
+                            + "cantidad sin lote={}]",
+                    establishmentId,
+                    productId,
+                    remaining.toPlainString());
         }
     }
 
     private Product requireActiveForUpdate(long establishmentId, long productId) {
-        Product product = products.findForUpdate(establishmentId, productId)
-                .orElseThrow(() -> notFound(productId));
+        Product product = products.findForUpdate(establishmentId, productId).orElseThrow(() -> notFound(productId));
         if (!product.active()) {
-            throw new ApiException(ErrorCode.VALIDATION_ERROR,
+            throw new ApiException(
+                    ErrorCode.VALIDATION_ERROR,
                     "La petición contiene datos no válidos.",
-                    List.of(new ApiError.FieldViolation("productId",
-                            "el producto está archivado y no admite movimientos")));
+                    List.of(new ApiError.FieldViolation(
+                            "productId", "el producto está archivado y no admite movimientos")));
         }
         return product;
     }
 
     private Product requireProduct(long establishmentId, long productId) {
-        return products.findById(establishmentId, productId)
-                .orElseThrow(() -> notFound(productId));
+        return products.findById(establishmentId, productId).orElseThrow(() -> notFound(productId));
     }
 
     private void requireActiveSupplier(long establishmentId, long supplierId) {
-        Supplier supplier = suppliers.findById(establishmentId, supplierId)
-                .orElseThrow(() -> new ApiException(ErrorCode.VALIDATION_ERROR,
+        Supplier supplier = suppliers
+                .findById(establishmentId, supplierId)
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.VALIDATION_ERROR,
                         "La petición contiene datos no válidos.",
-                        List.of(new ApiError.FieldViolation("supplierId",
-                                "el proveedor " + supplierId + " no existe"))));
+                        List.of(new ApiError.FieldViolation(
+                                "supplierId", "el proveedor " + supplierId + " no existe"))));
         if (!supplier.active()) {
-            throw new ApiException(ErrorCode.VALIDATION_ERROR,
+            throw new ApiException(
+                    ErrorCode.VALIDATION_ERROR,
                     "La petición contiene datos no válidos.",
-                    List.of(new ApiError.FieldViolation("supplierId",
-                            "el proveedor '" + supplier.name() + "' está desactivado")));
+                    List.of(new ApiError.FieldViolation(
+                            "supplierId", "el proveedor '" + supplier.name() + "' está desactivado")));
         }
     }
 
     private static long requireActor(Long actorId) {
         if (actorId == null) {
-            throw new ApiException(ErrorCode.UNAUTHORIZED,
-                    "Las operaciones de stock exigen un usuario autenticado.");
+            throw new ApiException(ErrorCode.UNAUTHORIZED, "Las operaciones de stock exigen un usuario autenticado.");
         }
         return actorId;
     }
 
     private static ApiException notFound(long productId) {
-        return new ApiException(ErrorCode.RESOURCE_NOT_FOUND,
-                "El producto " + productId + " no existe.");
+        return new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "El producto " + productId + " no existe.");
     }
 
     private String stockSnapshot(Product product) {

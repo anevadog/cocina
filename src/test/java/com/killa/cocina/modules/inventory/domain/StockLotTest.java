@@ -17,8 +17,7 @@ class StockLotTest {
     @Test
     @DisplayName("El valor del lote es saldo restante por coste, con cuatro decimales")
     void calculaElValorDelSaldo() {
-        StockLot lot = lot(NOW.plus(Duration.ofDays(5)), new BigDecimal("0.0120"),
-                new BigDecimal("1000"));
+        StockLot lot = lot(NOW.plus(Duration.ofDays(5)), new BigDecimal("0.0120"), new BigDecimal("1000"));
 
         assertThat(lot.value()).isEqualByComparingTo("12.0000");
         assertThat(lot.value().scale()).isEqualTo(4);
@@ -56,8 +55,7 @@ class StockLotTest {
 
         assertThat(consumed.remainingQty()).isEqualByComparingTo("750");
         assertThat(lot.remainingQty()).isEqualByComparingTo("1000");
-        assertThatThrownBy(() -> lot.consume(new BigDecimal("1000.001")))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> lot.consume(new BigDecimal("1000.001"))).isInstanceOf(IllegalArgumentException.class);
     }
 
     private static StockLot lot(Instant expiresAt, BigDecimal unitCost, BigDecimal quantity) {

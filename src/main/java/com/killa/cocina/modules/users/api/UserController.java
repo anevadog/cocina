@@ -49,10 +49,12 @@ public class UserController {
     @PreAuthorize("hasAuthority('users:read')")
     public PageResponse<UserResponse> list(
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "no puede ser negativo") int page,
-            @RequestParam(defaultValue = "20") @Min(value = 1, message = "debe ser al menos 1") @Max(value = 100, message = "no puede superar 100") int size) {
+            @RequestParam(defaultValue = "20")
+                    @Min(value = 1, message = "debe ser al menos 1")
+                    @Max(value = 100, message = "no puede superar 100")
+                    int size) {
         CurrentActor.Actor actor = requireActor();
-        return PageResponse.from(userService.list(actor.establishmentId(), page, size),
-                UserResponse::from);
+        return PageResponse.from(userService.list(actor.establishmentId(), page, size), UserResponse::from);
     }
 
     @PostMapping
@@ -60,9 +62,10 @@ public class UserController {
     @PreAuthorize("hasAuthority('users:write')")
     public UserResponse create(@Valid @RequestBody CreateUserRequest request) {
         CurrentActor.Actor actor = requireActor();
-        UserView created = userService.create(actor.establishmentId(), actor.userId(),
-                new UserRegistration(request.username(), request.fullName(), request.password(),
-                        request.role()));
+        UserView created = userService.create(
+                actor.establishmentId(),
+                actor.userId(),
+                new UserRegistration(request.username(), request.fullName(), request.password(), request.role()));
         return UserResponse.from(created);
     }
 
@@ -75,16 +78,20 @@ public class UserController {
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('users:write')")
-    public UserResponse update(@PathVariable long id,
-            @Valid @RequestBody UpdateUserRequest request) {
+    public UserResponse update(@PathVariable long id, @Valid @RequestBody UpdateUserRequest request) {
         CurrentActor.Actor actor = requireActor();
-        UserView updated = userService.update(actor.establishmentId(), actor.userId(), id,
+        UserView updated = userService.update(
+                actor.establishmentId(),
+                actor.userId(),
+                id,
                 new UserModification(request.fullName(), request.role(), request.active()));
         return UserResponse.from(updated);
     }
 
     private CurrentActor.Actor requireActor() {
-        return currentActor.find().orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED,
-                "Necesitas autenticarte para acceder a este recurso."));
+        return currentActor
+                .find()
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.UNAUTHORIZED, "Necesitas autenticarte para acceder a este recurso."));
     }
 }

@@ -40,8 +40,8 @@ public class SupplierApplicationService implements SupplierService {
 
     private final Clock clock;
 
-    public SupplierApplicationService(SupplierRepository suppliers, AuditRecorder audit,
-            ObjectMapper objectMapper, Clock clock) {
+    public SupplierApplicationService(
+            SupplierRepository suppliers, AuditRecorder audit, ObjectMapper objectMapper, Clock clock) {
         this.suppliers = suppliers;
         this.audit = audit;
         this.objectMapper = objectMapper;
@@ -54,28 +54,32 @@ public class SupplierApplicationService implements SupplierService {
             throw duplicateName(registration.name());
         }
         Instant now = Instant.now(clock);
-        Supplier saved = suppliers.save(new Supplier(null, establishmentId, registration.name(),
-                registration.contact(), true, now, now));
-        audit.record(establishmentId, actorId, AuditAction.SUPPLIER_CREATED, "supplier", saved.id(),
-                null, snapshot(saved));
+        Supplier saved = suppliers.save(
+                new Supplier(null, establishmentId, registration.name(), registration.contact(), true, now, now));
+        audit.record(
+                establishmentId, actorId, AuditAction.SUPPLIER_CREATED, "supplier", saved.id(), null, snapshot(saved));
         return SupplierView.from(saved);
     }
 
     @Override
-    public SupplierView update(long establishmentId, Long actorId, long supplierId,
-            SupplierModification modification) {
+    public SupplierView update(long establishmentId, Long actorId, long supplierId, SupplierModification modification) {
         Supplier current = requireSupplier(establishmentId, supplierId);
         if (modification.isEmpty()) {
             return SupplierView.from(current);
         }
         Supplier updated = modification.applyTo(current, Instant.now(clock));
-        if (!updated.name().equals(current.name())
-                && suppliers.existsByName(establishmentId, updated.name())) {
+        if (!updated.name().equals(current.name()) && suppliers.existsByName(establishmentId, updated.name())) {
             throw duplicateName(updated.name());
         }
         Supplier saved = suppliers.save(updated);
-        audit.record(establishmentId, actorId, AuditAction.SUPPLIER_UPDATED, "supplier", saved.id(),
-                snapshot(current), snapshot(saved));
+        audit.record(
+                establishmentId,
+                actorId,
+                AuditAction.SUPPLIER_UPDATED,
+                "supplier",
+                saved.id(),
+                snapshot(current),
+                snapshot(saved));
         return SupplierView.from(saved);
     }
 
@@ -97,14 +101,14 @@ public class SupplierApplicationService implements SupplierService {
     }
 
     private Supplier requireSupplier(long establishmentId, long supplierId) {
-        return suppliers.findById(establishmentId, supplierId)
-                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,
-                        "El proveedor " + supplierId + " no existe."));
+        return suppliers
+                .findById(establishmentId, supplierId)
+                .orElseThrow(() ->
+                        new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "El proveedor " + supplierId + " no existe."));
     }
 
     private static ApiException duplicateName(String name) {
-        return new ApiException(ErrorCode.DUPLICATE_NAME,
-                "Ya existe un proveedor con el nombre '" + name + "'.");
+        return new ApiException(ErrorCode.DUPLICATE_NAME, "Ya existe un proveedor con el nombre '" + name + "'.");
     }
 
     private String snapshot(Supplier supplier) {

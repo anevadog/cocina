@@ -13,8 +13,8 @@ class SecuritySettingsTest {
     @Test
     @DisplayName("El token de acceso no puede superar los 15 minutos")
     void rechazaAccessTokenDemasiadoLargo() {
-        assertThatThrownBy(() -> new SecuritySettings(Duration.ofMinutes(16), Duration.ofDays(30), 5,
-                Duration.ofMinutes(15)))
+        assertThatThrownBy(() ->
+                        new SecuritySettings(Duration.ofMinutes(16), Duration.ofDays(30), 5, Duration.ofMinutes(15)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("15 minutos");
     }
@@ -22,25 +22,23 @@ class SecuritySettingsTest {
     @Test
     @DisplayName("El refresh debe durar más que el acceso y el bloqueo debe ser positivo")
     void rechazaCombinacionesIncoherentes() {
-        assertThatThrownBy(() -> new SecuritySettings(Duration.ofMinutes(15), Duration.ofMinutes(15), 5,
-                Duration.ofMinutes(15)))
+        assertThatThrownBy(() ->
+                        new SecuritySettings(Duration.ofMinutes(15), Duration.ofMinutes(15), 5, Duration.ofMinutes(15)))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new SecuritySettings(Duration.ZERO, Duration.ofDays(30), 5,
-                Duration.ofMinutes(15)))
+        assertThatThrownBy(() -> new SecuritySettings(Duration.ZERO, Duration.ofDays(30), 5, Duration.ofMinutes(15)))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new SecuritySettings(Duration.ofMinutes(15), Duration.ofDays(30), 0,
-                Duration.ofMinutes(15)))
+        assertThatThrownBy(() ->
+                        new SecuritySettings(Duration.ofMinutes(15), Duration.ofDays(30), 0, Duration.ofMinutes(15)))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new SecuritySettings(Duration.ofMinutes(15), Duration.ofDays(30), 5,
-                Duration.ZERO))
+        assertThatThrownBy(() -> new SecuritySettings(Duration.ofMinutes(15), Duration.ofDays(30), 5, Duration.ZERO))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     @DisplayName("Una configuración razonable se acepta tal cual")
     void aceptaConfiguracionValida() {
-        SecuritySettings settings = new SecuritySettings(Duration.ofMinutes(15), Duration.ofDays(30), 5,
-                Duration.ofMinutes(15));
+        SecuritySettings settings =
+                new SecuritySettings(Duration.ofMinutes(15), Duration.ofDays(30), 5, Duration.ofMinutes(15));
 
         assertThat(settings.accessTtl()).isEqualTo(Duration.ofMinutes(15));
         assertThat(settings.maxFailedAttempts()).isEqualTo(5);

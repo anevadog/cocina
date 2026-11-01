@@ -59,7 +59,9 @@ class RequestIdFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         String[] dentroDeLaPeticion = new String[1];
 
-        filter.doFilter(request, response,
+        filter.doFilter(
+                request,
+                response,
                 (servletRequest, servletResponse) -> dentroDeLaPeticion[0] = MDC.get(RequestIdFilter.MDC_KEY));
 
         assertThat(dentroDeLaPeticion[0]).isEqualTo(response.getHeader(RequestIdFilter.HEADER_NAME));

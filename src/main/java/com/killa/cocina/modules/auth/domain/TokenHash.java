@@ -13,8 +13,7 @@ import java.util.HexFormat;
  */
 public final class TokenHash {
 
-    private TokenHash() {
-    }
+    private TokenHash() {}
 
     public static String of(String rawToken) {
         try {

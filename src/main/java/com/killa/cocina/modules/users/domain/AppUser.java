@@ -36,14 +36,14 @@ public record AppUser(
     public AppUser registerFailedLogin(Instant now, int maxFailedAttempts, Duration lockDuration) {
         int attempts = failedAttempts + 1;
         Instant lock = attempts >= maxFailedAttempts ? now.plus(lockDuration) : null;
-        return new AppUser(id, establishmentId, username, fullName, passwordHash, role, active,
-                attempts, lock, createdAt, now);
+        return new AppUser(
+                id, establishmentId, username, fullName, passwordHash, role, active, attempts, lock, createdAt, now);
     }
 
     /** Reinicia el contador tras un acceso correcto. */
     public AppUser registerSuccessfulLogin(Instant now) {
-        return new AppUser(id, establishmentId, username, fullName, passwordHash, role, active,
-                0, null, createdAt, now);
+        return new AppUser(
+                id, establishmentId, username, fullName, passwordHash, role, active, 0, null, createdAt, now);
     }
 
     /** Si el bloqueo ya expiró, deja la cuenta limpia antes de comprobar la contraseña. */
@@ -56,7 +56,17 @@ public record AppUser(
 
     /** Cambia los datos editables por un administrador (el username no se modifica). */
     public AppUser update(String fullName, Role role, boolean active, Instant now) {
-        return new AppUser(id, establishmentId, username, fullName, passwordHash, role, active,
-                failedAttempts, lockedUntil, createdAt, now);
+        return new AppUser(
+                id,
+                establishmentId,
+                username,
+                fullName,
+                passwordHash,
+                role,
+                active,
+                failedAttempts,
+                lockedUntil,
+                createdAt,
+                now);
     }
 }

@@ -8,8 +8,7 @@ import java.util.List;
 /** Reglas comunes de nombres y contactos de proveedor. */
 final class SupplierNames {
 
-    private SupplierNames() {
-    }
+    private SupplierNames() {}
 
     /** Nombre obligatorio de 2 a 120 caracteres, con espacios interiores colapsados. */
     static String name(String name) {
@@ -36,7 +35,9 @@ final class SupplierNames {
     }
 
     static ApiException invalid(String field, String message) {
-        return new ApiException(ErrorCode.VALIDATION_ERROR, "La petición contiene datos no válidos.",
+        return new ApiException(
+                ErrorCode.VALIDATION_ERROR,
+                "La petición contiene datos no válidos.",
                 List.of(new ApiError.FieldViolation(field, message)));
     }
 }

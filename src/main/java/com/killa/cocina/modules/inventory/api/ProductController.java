@@ -54,11 +54,13 @@ public class ProductController {
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "no puede ser negativo") int page,
-            @RequestParam(defaultValue = "20") @Min(value = 1, message = "debe ser al menos 1") @Max(value = 100, message = "no puede superar 100") int size) {
+            @RequestParam(defaultValue = "20")
+                    @Min(value = 1, message = "debe ser al menos 1")
+                    @Max(value = 100, message = "no puede superar 100")
+                    int size) {
         CurrentActor.Actor actor = requireActor();
         return PageResponse.from(
-                productService.list(actor.establishmentId(), new ProductFilter(active, categoryId),
-                        page, size),
+                productService.list(actor.establishmentId(), new ProductFilter(active, categoryId), page, size),
                 ProductResponse::from);
     }
 
@@ -67,9 +69,15 @@ public class ProductController {
     @PreAuthorize("hasAuthority('inventory:write')")
     public ProductResponse create(@Valid @RequestBody CreateProductRequest request) {
         CurrentActor.Actor actor = requireActor();
-        ProductView created = productService.create(actor.establishmentId(), actor.userId(),
-                new ProductRegistration(request.name(), request.categoryId(), request.baseUnit(),
-                        request.minStock(), request.allowsNegative(),
+        ProductView created = productService.create(
+                actor.establishmentId(),
+                actor.userId(),
+                new ProductRegistration(
+                        request.name(),
+                        request.categoryId(),
+                        request.baseUnit(),
+                        request.minStock(),
+                        request.allowsNegative(),
                         conversions(request.conversionList())));
         return ProductResponse.from(created);
     }
@@ -83,12 +91,18 @@ public class ProductController {
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('inventory:write')")
-    public ProductResponse update(@PathVariable long id,
-            @Valid @RequestBody UpdateProductRequest request) {
+    public ProductResponse update(@PathVariable long id, @Valid @RequestBody UpdateProductRequest request) {
         CurrentActor.Actor actor = requireActor();
-        ProductView updated = productService.update(actor.establishmentId(), actor.userId(), id,
-                new ProductModification(request.name(), request.categoryId(), request.minStock(),
-                        request.allowNegative(), request.active()));
+        ProductView updated = productService.update(
+                actor.establishmentId(),
+                actor.userId(),
+                id,
+                new ProductModification(
+                        request.name(),
+                        request.categoryId(),
+                        request.minStock(),
+                        request.allowNegative(),
+                        request.active()));
         return ProductResponse.from(updated);
     }
 
@@ -103,11 +117,11 @@ public class ProductController {
 
     @PutMapping("/{id}/conversions")
     @PreAuthorize("hasAuthority('inventory:write')")
-    public List<ConversionResponse> replaceConversions(@PathVariable long id,
-            @Valid @RequestBody ReplaceConversionsRequest request) {
+    public List<ConversionResponse> replaceConversions(
+            @PathVariable long id, @Valid @RequestBody ReplaceConversionsRequest request) {
         CurrentActor.Actor actor = requireActor();
-        ProductView updated = productService.replaceConversions(actor.establishmentId(),
-                actor.userId(), id, conversions(request.conversions()));
+        ProductView updated = productService.replaceConversions(
+                actor.establishmentId(), actor.userId(), id, conversions(request.conversions()));
         return updated.conversions().stream().map(ConversionResponse::from).toList();
     }
 
@@ -116,7 +130,9 @@ public class ProductController {
     }
 
     private CurrentActor.Actor requireActor() {
-        return currentActor.find().orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED,
-                "Necesitas autenticarte para acceder a este recurso."));
+        return currentActor
+                .find()
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.UNAUTHORIZED, "Necesitas autenticarte para acceder a este recurso."));
     }
 }

@@ -7,7 +7,6 @@ package com.killa.cocina.modules.audit.domain;
  * porque la columna es texto libre validado aquí.</p>
  */
 public enum AuditAction {
-
     USER_CREATED,
     USER_UPDATED,
     USER_ROLE_CHANGED,

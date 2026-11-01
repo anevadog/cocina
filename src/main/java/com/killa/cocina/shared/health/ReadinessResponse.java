@@ -12,6 +12,5 @@ public record ReadinessResponse(String status, List<Check> checks) {
     }
 
     /** Resultado de una comprobación concreta. */
-    public record Check(String name, String status) {
-    }
+    public record Check(String name, String status) {}
 }

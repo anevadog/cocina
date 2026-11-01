@@ -28,8 +28,9 @@ public record UserRegistration(String username, String fullName, String password
         }
         String normalized = username.trim().toLowerCase(Locale.ROOT);
         if (!normalized.matches("[a-z0-9][a-z0-9._-]{2,59}")) {
-            throw invalid("username", "debe tener entre 3 y 60 caracteres: letras minúsculas, "
-                    + "dígitos, punto, guion o guion bajo");
+            throw invalid(
+                    "username",
+                    "debe tener entre 3 y 60 caracteres: letras minúsculas, " + "dígitos, punto, guion o guion bajo");
         }
         return normalized;
     }
@@ -46,7 +47,9 @@ public record UserRegistration(String username, String fullName, String password
     }
 
     private static ApiException invalid(String field, String message) {
-        return new ApiException(ErrorCode.VALIDATION_ERROR, "La petición contiene datos no válidos.",
+        return new ApiException(
+                ErrorCode.VALIDATION_ERROR,
+                "La petición contiene datos no válidos.",
                 List.of(new ApiError.FieldViolation(field, message)));
     }
 }

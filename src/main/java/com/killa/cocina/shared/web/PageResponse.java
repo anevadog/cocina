@@ -15,7 +15,7 @@ import java.util.function.Function;
 public record PageResponse<T>(List<T> content, long total, int page, int size) {
 
     public static <D, R> PageResponse<R> from(PageResult<D> result, Function<D, R> mapper) {
-        return new PageResponse<>(result.items().stream().map(mapper).toList(), result.total(),
-                result.page(), result.size());
+        return new PageResponse<>(
+                result.items().stream().map(mapper).toList(), result.total(), result.page(), result.size());
     }
 }

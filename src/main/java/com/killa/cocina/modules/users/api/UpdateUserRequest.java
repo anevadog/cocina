@@ -9,7 +9,8 @@ import jakarta.validation.constraints.Size;
  * <p>La baja es lógica: se envía {@code active: false}; no existe endpoint de borrado.</p>
  */
 public record UpdateUserRequest(
-        @Size(min = 1, max = 120, message = "debe tener entre 1 y 120 caracteres") String fullName,
+        @Size(min = 1, max = 120, message = "debe tener entre 1 y 120 caracteres")
+        String fullName,
+
         Role role,
-        Boolean active) {
-}
+        Boolean active) {}

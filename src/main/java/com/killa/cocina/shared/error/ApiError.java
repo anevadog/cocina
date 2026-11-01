@@ -16,6 +16,5 @@ public record ApiError(String code, String message, List<FieldViolation> details
     }
 
     /** Campo concreto que no cumple una regla, con su motivo en español. */
-    public record FieldViolation(String field, String message) {
-    }
+    public record FieldViolation(String field, String message) {}
 }

@@ -26,8 +26,7 @@ public class StockMovementEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "stock_movements_seq")
-    @SequenceGenerator(name = "stock_movements_seq", sequenceName = "stock_movements_seq",
-            allocationSize = 1)
+    @SequenceGenerator(name = "stock_movements_seq", sequenceName = "stock_movements_seq", allocationSize = 1)
     private Long id;
 
     @Column(name = "establishment_id", nullable = false)
@@ -70,8 +69,7 @@ public class StockMovementEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    protected StockMovementEntity() {
-    }
+    protected StockMovementEntity() {}
 
     static StockMovementEntity from(StockMovement movement, Instant now) {
         StockMovementEntity entity = new StockMovementEntity();
@@ -92,7 +90,19 @@ public class StockMovementEntity {
     }
 
     StockMovement toDomain() {
-        return new StockMovement(id, establishmentId, productId, lotId, type, quantityBase,
-                unitCost, balanceAfter, reason, referenceType, referenceId, actorId, occurredAt);
+        return new StockMovement(
+                id,
+                establishmentId,
+                productId,
+                lotId,
+                type,
+                quantityBase,
+                unitCost,
+                balanceAfter,
+                reason,
+                referenceType,
+                referenceId,
+                actorId,
+                occurredAt);
     }
 }

@@ -55,9 +55,14 @@ public class AuthApplicationService implements AuthService {
 
     private final SecureRandom random = new SecureRandom();
 
-    public AuthApplicationService(UserRepository users, RefreshTokenRepository refreshTokens,
-            AccessTokenIssuer accessTokens, PasswordEncoder passwordEncoder, AuditRecorder audit,
-            SecuritySettings settings, Clock clock) {
+    public AuthApplicationService(
+            UserRepository users,
+            RefreshTokenRepository refreshTokens,
+            AccessTokenIssuer accessTokens,
+            PasswordEncoder passwordEncoder,
+            AuditRecorder audit,
+            SecuritySettings settings,
+            Clock clock) {
         this.users = users;
         this.refreshTokens = refreshTokens;
         this.accessTokens = accessTokens;
@@ -79,14 +84,12 @@ public class AuthApplicationService implements AuthService {
             throw invalidCredentials();
         }
         if (user.isLocked(now)) {
-            throw new ApiException(ErrorCode.ACCOUNT_LOCKED,
-                    "La cuenta está bloqueada temporalmente por intentos fallidos.");
+            throw new ApiException(
+                    ErrorCode.ACCOUNT_LOCKED, "La cuenta está bloqueada temporalmente por intentos fallidos.");
         }
         if (!passwordEncoder.matches(password, user.passwordHash())) {
-            users.save(user.registerFailedLogin(now, settings.maxFailedAttempts(),
-                    settings.lockDuration()));
-            audit.record(establishmentId, user.id(), AuditAction.LOGIN_FAILED, "app_user", user.id(),
-                    null, null);
+            users.save(user.registerFailedLogin(now, settings.maxFailedAttempts(), settings.lockDuration()));
+            audit.record(establishmentId, user.id(), AuditAction.LOGIN_FAILED, "app_user", user.id(), null, null);
             throw invalidCredentials();
         }
 
@@ -97,13 +100,20 @@ public class AuthApplicationService implements AuthService {
     @Override
     public AuthSession refresh(String rawRefreshToken) {
         Instant now = Instant.now(clock);
-        RefreshToken stored = refreshTokens.findByHash(TokenHash.of(requireToken(rawRefreshToken)))
+        RefreshToken stored = refreshTokens
+                .findByHash(TokenHash.of(requireToken(rawRefreshToken)))
                 .orElseThrow(AuthApplicationService::invalidRefreshToken);
 
         if (stored.isRevoked()) {
             refreshTokens.revokeAll(stored.userId(), now);
-            audit.record(stored.establishmentId(), stored.userId(),
-                    AuditAction.REFRESH_TOKEN_REUSED, "refresh_token", stored.id(), null, null);
+            audit.record(
+                    stored.establishmentId(),
+                    stored.userId(),
+                    AuditAction.REFRESH_TOKEN_REUSED,
+                    "refresh_token",
+                    stored.id(),
+                    null,
+                    null);
             throw invalidRefreshToken();
         }
         if (stored.isExpired(now)) {
@@ -124,7 +134,8 @@ public class AuthApplicationService implements AuthService {
     @Override
     public void logout(String rawRefreshToken) {
         Instant now = Instant.now(clock);
-        refreshTokens.findByHash(TokenHash.of(requireToken(rawRefreshToken)))
+        refreshTokens
+                .findByHash(TokenHash.of(requireToken(rawRefreshToken)))
                 .filter(token -> !token.isRevoked())
                 .ifPresent(token -> refreshTokens.save(token.revoke(now, null)));
     }
@@ -139,20 +150,16 @@ public class AuthApplicationService implements AuthService {
         AccessTokenIssuer.IssuedAccessToken access = accessTokens.issue(user);
         String rawRefresh = newRefreshToken();
         Instant refreshExpiresAt = now.plus(settings.refreshTtl());
-        RefreshToken stored = refreshTokens.save(newToken(user.establishmentId(), user.id(),
-                rawRefresh, refreshExpiresAt, now));
+        RefreshToken stored =
+                refreshTokens.save(newToken(user.establishmentId(), user.id(), rawRefresh, refreshExpiresAt, now));
         return new IssuedSession(
-                new AuthSession(access.token(), access.expiresAt(), rawRefresh, refreshExpiresAt),
-                stored);
+                new AuthSession(access.token(), access.expiresAt(), rawRefresh, refreshExpiresAt), stored);
     }
 
-    private record IssuedSession(AuthSession session, RefreshToken stored) {
-    }
+    private record IssuedSession(AuthSession session, RefreshToken stored) {}
 
-    private RefreshToken newToken(long establishmentId, long userId, String rawToken,
-            Instant expiresAt, Instant now) {
-        return new RefreshToken(null, establishmentId, userId, TokenHash.of(rawToken), expiresAt,
-                null, null, now);
+    private RefreshToken newToken(long establishmentId, long userId, String rawToken, Instant expiresAt, Instant now) {
+        return new RefreshToken(null, establishmentId, userId, TokenHash.of(rawToken), expiresAt, null, null, now);
     }
 
     private String newRefreshToken() {
@@ -173,7 +180,6 @@ public class AuthApplicationService implements AuthService {
     }
 
     private static ApiException invalidRefreshToken() {
-        return new ApiException(ErrorCode.INVALID_REFRESH_TOKEN,
-                "El refresh token no es válido o ha caducado.");
+        return new ApiException(ErrorCode.INVALID_REFRESH_TOKEN, "El refresh token no es válido o ha caducado.");
     }
 }

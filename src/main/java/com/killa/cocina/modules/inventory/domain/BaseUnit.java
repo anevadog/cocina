@@ -27,10 +27,18 @@ public enum BaseUnit {
      * «caja» o «docena», cuya dimensión se asume la del producto.
      */
     private static final Map<String, BaseUnit> KNOWN_UNITS = Map.ofEntries(
-            Map.entry("g", G), Map.entry("kg", G), Map.entry("mg", G), Map.entry("oz", G),
+            Map.entry("g", G),
+            Map.entry("kg", G),
+            Map.entry("mg", G),
+            Map.entry("oz", G),
             Map.entry("lb", G),
-            Map.entry("ml", ML), Map.entry("l", ML), Map.entry("cl", ML), Map.entry("dl", ML),
-            Map.entry("ud", UNIT), Map.entry("u", UNIT), Map.entry("unidad", UNIT));
+            Map.entry("ml", ML),
+            Map.entry("l", ML),
+            Map.entry("cl", ML),
+            Map.entry("dl", ML),
+            Map.entry("ud", UNIT),
+            Map.entry("u", UNIT),
+            Map.entry("unidad", UNIT));
 
     private final String label;
 
@@ -50,7 +58,8 @@ public enum BaseUnit {
         }
         String normalized = label.trim().toLowerCase(Locale.ROOT);
         for (BaseUnit unit : values()) {
-            if (unit.label.equals(normalized) || unit.name().toLowerCase(Locale.ROOT).equals(normalized)) {
+            if (unit.label.equals(normalized)
+                    || unit.name().toLowerCase(Locale.ROOT).equals(normalized)) {
                 return Optional.of(unit);
             }
         }

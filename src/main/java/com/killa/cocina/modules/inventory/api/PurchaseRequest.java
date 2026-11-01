@@ -16,8 +16,7 @@ import java.time.Instant;
  * convierte con el factor del producto.</p>
  */
 public record PurchaseRequest(
-        @NotNull(message = "es obligatorio")
-        @Positive(message = "debe ser mayor que cero")
+        @NotNull(message = "es obligatorio") @Positive(message = "debe ser mayor que cero")
         Long supplierId,
 
         @NotNull(message = "es obligatorio")
@@ -29,11 +28,9 @@ public record PurchaseRequest(
         @Pattern(regexp = "[A-Za-z0-9.]{1,20}", message = "solo admite letras, dígitos o punto")
         String unit,
 
-        @NotNull(message = "es obligatorio")
-        @DecimalMin(value = "0", message = "no puede ser negativo")
+        @NotNull(message = "es obligatorio") @DecimalMin(value = "0", message = "no puede ser negativo")
         BigDecimal unitPrice,
 
         Instant receivedAt,
 
-        Instant expiresAt) {
-}
+        Instant expiresAt) {}

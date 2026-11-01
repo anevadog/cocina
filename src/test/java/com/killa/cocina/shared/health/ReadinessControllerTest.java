@@ -14,7 +14,8 @@ class ReadinessControllerTest {
     private MockMvc mockMvc;
 
     private static MockMvc conIndicadores(ReadinessIndicator... indicators) {
-        return MockMvcBuilders.standaloneSetup(new ReadinessController(List.of(indicators))).build();
+        return MockMvcBuilders.standaloneSetup(new ReadinessController(List.of(indicators)))
+                .build();
     }
 
     private static ReadinessIndicator indicador(String nombre, ReadinessStatus estado) {
@@ -55,8 +56,7 @@ class ReadinessControllerTest {
     @Test
     void responde503CuandoAlgunaDependenciaEstaCaida() throws Exception {
         mockMvc = conIndicadores(
-                indicador("postgres", ReadinessStatus.UP),
-                indicador("migraciones", ReadinessStatus.DOWN));
+                indicador("postgres", ReadinessStatus.UP), indicador("migraciones", ReadinessStatus.DOWN));
 
         mockMvc.perform(get("/ready"))
                 .andExpect(status().isServiceUnavailable())

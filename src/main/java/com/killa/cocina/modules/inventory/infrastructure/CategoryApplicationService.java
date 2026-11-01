@@ -38,8 +38,8 @@ public class CategoryApplicationService implements CategoryService {
 
     private final Clock clock;
 
-    public CategoryApplicationService(CategoryRepository categories, AuditRecorder audit,
-            ObjectMapper objectMapper, Clock clock) {
+    public CategoryApplicationService(
+            CategoryRepository categories, AuditRecorder audit, ObjectMapper objectMapper, Clock clock) {
         this.categories = categories;
         this.audit = audit;
         this.objectMapper = objectMapper;
@@ -54,8 +54,14 @@ public class CategoryApplicationService implements CategoryService {
             throw duplicateName(created.name());
         }
         Category saved = categories.save(created);
-        audit.record(establishmentId, actorId, AuditAction.CATEGORY_CREATED, "product_category",
-                saved.id(), null, snapshot(saved));
+        audit.record(
+                establishmentId,
+                actorId,
+                AuditAction.CATEGORY_CREATED,
+                "product_category",
+                saved.id(),
+                null,
+                snapshot(saved));
         return CategoryView.from(saved);
     }
 
@@ -70,8 +76,14 @@ public class CategoryApplicationService implements CategoryService {
             throw duplicateName(renamed.name());
         }
         Category saved = categories.save(renamed);
-        audit.record(establishmentId, actorId, AuditAction.CATEGORY_UPDATED, "product_category",
-                saved.id(), snapshot(current), snapshot(saved));
+        audit.record(
+                establishmentId,
+                actorId,
+                AuditAction.CATEGORY_UPDATED,
+                "product_category",
+                saved.id(),
+                snapshot(current),
+                snapshot(saved));
         return CategoryView.from(saved);
     }
 
@@ -93,14 +105,14 @@ public class CategoryApplicationService implements CategoryService {
     }
 
     private Category requireCategory(long establishmentId, long categoryId) {
-        return categories.findById(establishmentId, categoryId)
-                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,
-                        "La categoría " + categoryId + " no existe."));
+        return categories
+                .findById(establishmentId, categoryId)
+                .orElseThrow(() ->
+                        new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "La categoría " + categoryId + " no existe."));
     }
 
     private static ApiException duplicateName(String name) {
-        return new ApiException(ErrorCode.DUPLICATE_NAME,
-                "Ya existe una categoría con el nombre '" + name + "'.");
+        return new ApiException(ErrorCode.DUPLICATE_NAME, "Ya existe una categoría con el nombre '" + name + "'.");
     }
 
     private String snapshot(Category category) {

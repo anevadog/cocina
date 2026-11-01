@@ -44,8 +44,12 @@ public class UserApplicationService implements UserService {
 
     private final Clock clock;
 
-    public UserApplicationService(UserRepository users, PasswordEncoder passwordEncoder,
-            AuditRecorder audit, ObjectMapper objectMapper, Clock clock) {
+    public UserApplicationService(
+            UserRepository users,
+            PasswordEncoder passwordEncoder,
+            AuditRecorder audit,
+            ObjectMapper objectMapper,
+            Clock clock) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.audit = audit;
@@ -56,23 +60,29 @@ public class UserApplicationService implements UserService {
     @Override
     public UserView create(long establishmentId, Long actorId, UserRegistration registration) {
         if (users.existsByUsername(establishmentId, registration.username())) {
-            throw new ApiException(ErrorCode.USERNAME_TAKEN,
-                    "El nombre de usuario ya está en uso en este establecimiento.");
+            throw new ApiException(
+                    ErrorCode.USERNAME_TAKEN, "El nombre de usuario ya está en uso en este establecimiento.");
         }
         Instant now = Instant.now(clock);
-        AppUser saved = users.save(new AppUser(null, establishmentId, registration.username(),
-                registration.fullName(), passwordEncoder.encode(registration.password()),
-                registration.role(), true, 0, null, now, now));
-        audit.record(establishmentId, actorId, AuditAction.USER_CREATED, "app_user", saved.id(),
-                null, snapshot(saved));
+        AppUser saved = users.save(new AppUser(
+                null,
+                establishmentId,
+                registration.username(),
+                registration.fullName(),
+                passwordEncoder.encode(registration.password()),
+                registration.role(),
+                true,
+                0,
+                null,
+                now,
+                now));
+        audit.record(establishmentId, actorId, AuditAction.USER_CREATED, "app_user", saved.id(), null, snapshot(saved));
         return UserView.from(saved);
     }
 
     @Override
-    public UserView update(long establishmentId, Long actorId, long userId,
-            UserModification modification) {
-        AppUser current = users.findById(establishmentId, userId)
-                .orElseThrow(() -> notFound(userId));
+    public UserView update(long establishmentId, Long actorId, long userId, UserModification modification) {
+        AppUser current = users.findById(establishmentId, userId).orElseThrow(() -> notFound(userId));
         if (modification.isEmpty()) {
             return UserView.from(current);
         }
@@ -80,16 +90,21 @@ public class UserApplicationService implements UserService {
         ensureAtLeastOneActiveAdmin(current, updated);
         AppUser saved = users.save(updated);
 
-        audit.record(establishmentId, actorId, actionFor(current, saved), "app_user", saved.id(),
-                snapshot(current), snapshot(saved));
+        audit.record(
+                establishmentId,
+                actorId,
+                actionFor(current, saved),
+                "app_user",
+                saved.id(),
+                snapshot(current),
+                snapshot(saved));
         return UserView.from(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public UserView find(long establishmentId, long userId) {
-        return users.findById(establishmentId, userId).map(UserView::from)
-                .orElseThrow(() -> notFound(userId));
+        return users.findById(establishmentId, userId).map(UserView::from).orElseThrow(() -> notFound(userId));
     }
 
     @Override
@@ -108,7 +123,8 @@ public class UserApplicationService implements UserService {
         boolean wasAdmin = before.role() == Role.ADMIN && before.active();
         boolean staysAdmin = after.role() == Role.ADMIN && after.active();
         if (wasAdmin && !staysAdmin && users.countActiveAdmins(before.establishmentId(), before.id()) == 0) {
-            throw new ApiException(ErrorCode.VALIDATION_ERROR,
+            throw new ApiException(
+                    ErrorCode.VALIDATION_ERROR,
                     "La operación dejaría el establecimiento sin administradores activos.",
                     List.of(new com.killa.cocina.shared.error.ApiError.FieldViolation(
                             "role", "debe existir al menos un administrador activo")));
@@ -135,7 +151,6 @@ public class UserApplicationService implements UserService {
     }
 
     private static ApiException notFound(long userId) {
-        return new ApiException(ErrorCode.RESOURCE_NOT_FOUND,
-                "El usuario " + userId + " no existe.");
+        return new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "El usuario " + userId + " no existe.");
     }
 }

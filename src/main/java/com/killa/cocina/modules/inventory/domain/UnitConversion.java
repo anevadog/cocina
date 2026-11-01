@@ -36,8 +36,7 @@ public record UnitConversion(String unit, BigDecimal factorToBase) {
         }
         String normalized = unit.trim().toLowerCase(Locale.ROOT);
         if (!UNIT_FORMAT.matcher(normalized).matches()) {
-            throw invalid("unit",
-                    "debe tener entre 1 y 20 caracteres: letras minúsculas, dígitos o punto");
+            throw invalid("unit", "debe tener entre 1 y 20 caracteres: letras minúsculas, dígitos o punto");
         }
         return normalized;
     }
@@ -56,7 +55,9 @@ public record UnitConversion(String unit, BigDecimal factorToBase) {
     }
 
     static ApiException invalid(String field, String message) {
-        return new ApiException(ErrorCode.VALIDATION_ERROR, "La petición contiene datos no válidos.",
+        return new ApiException(
+                ErrorCode.VALIDATION_ERROR,
+                "La petición contiene datos no válidos.",
                 List.of(new ApiError.FieldViolation(field, message)));
     }
 }

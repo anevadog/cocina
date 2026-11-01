@@ -85,15 +85,21 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeAll
     void prepararDatos() throws Exception {
-        storekeeperId = users.create(establishment.id(), null,
-                new UserRegistration("stock.store", "Almacenera", PASSWORD, Role.STOREKEEPER)).id();
-        users.create(establishment.id(), null,
-                new UserRegistration("stock.cook", "Cocinera", PASSWORD, Role.COOK));
+        storekeeperId = users.create(
+                        establishment.id(),
+                        null,
+                        new UserRegistration("stock.store", "Almacenera", PASSWORD, Role.STOREKEEPER))
+                .id();
+        users.create(establishment.id(), null, new UserRegistration("stock.cook", "Cocinera", PASSWORD, Role.COOK));
         storeToken = loginToken("stock.store");
         cookToken = loginToken("stock.cook");
         categoryId = categories.create(establishment.id(), null, "Stock IT").id();
-        supplierId = suppliers.create(establishment.id(), null,
-                new SupplierRegistration("Proveedor stock IT", "compras@example.test")).id();
+        supplierId = suppliers
+                .create(
+                        establishment.id(),
+                        null,
+                        new SupplierRegistration("Proveedor stock IT", "compras@example.test"))
+                .id();
     }
 
     @Test
@@ -112,16 +118,14 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
         assertThat(decimal(second, "$.currentStock")).isEqualByComparingTo("3000");
         assertThat(decimal(second, "$.currentAvgCost")).isEqualByComparingTo("0.0160");
 
-        mvc.perform(get("/api/v1/products/" + productId + "/movements")
-                        .header("Authorization", "Bearer " + storeToken))
+        mvc.perform(get("/api/v1/products/" + productId + "/movements").header("Authorization", "Bearer " + storeToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(2))
                 .andExpect(jsonPath("$.content[0].type").value("PURCHASE_IN"))
                 .andExpect(jsonPath("$.content[0].balanceAfter").value(3000.000))
                 .andExpect(jsonPath("$.content[1].balanceAfter").value(1000.000));
 
-        mvc.perform(get("/api/v1/products/" + productId + "/lots")
-                        .header("Authorization", "Bearer " + storeToken))
+        mvc.perform(get("/api/v1/products/" + productId + "/lots").header("Authorization", "Bearer " + storeToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(2));
 
@@ -129,7 +133,8 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
                 select count(*) from audit_logs
                 where action = 'STOCK_PURCHASE_RECORDED' and entity_type = 'stock_movement'
                   and entity_id = ? and actor_id = ?
-                """, Integer.class, firstMovement, storekeeperId)).isEqualTo(1);
+                """, Integer.class, firstMovement, storekeeperId))
+                .isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("""
                 select count(*) from audit_logs
                 where action = 'STOCK_COST_CHANGED' and entity_type = 'product' and entity_id = ?
@@ -140,10 +145,8 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("Un ajuste de salida consume lotes FIFO por caducidad")
     void elAjusteDeSalidaConsumeLotesFifo() throws Exception {
         long productId = createProduct("Arroz stock IT", false, BigDecimal.ZERO);
-        long firstLot = id(purchase(productId, supplierId, "1", "kg", "10.00", null, null),
-                "$.lotId");
-        long secondLot = id(purchase(productId, supplierId, "2", "kg", "20.00", null, null),
-                "$.lotId");
+        long firstLot = id(purchase(productId, supplierId, "1", "kg", "10.00", null, null), "$.lotId");
+        long secondLot = id(purchase(productId, supplierId, "2", "kg", "20.00", null, null), "$.lotId");
 
         String adjustment = mvc.perform(post("/api/v1/products/" + productId + "/adjustments")
                         .header("Authorization", "Bearer " + storeToken)
@@ -155,7 +158,9 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.type").value("ADJUSTMENT_OUT"))
                 .andExpect(jsonPath("$.reason").value("Rotura de saco"))
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
         assertThat(decimal(adjustment, "$.quantityBase")).isEqualByComparingTo("500");
         assertThat(decimal(adjustment, "$.currentStock")).isEqualByComparingTo("2500");
@@ -165,8 +170,7 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
         assertThat(remaining.get(firstLot)).isEqualByComparingTo("500");
         assertThat(remaining.get(secondLot)).isEqualByComparingTo("2000");
 
-        mvc.perform(get("/api/v1/products/" + productId + "/movements")
-                        .header("Authorization", "Bearer " + storeToken))
+        mvc.perform(get("/api/v1/products/" + productId + "/movements").header("Authorization", "Bearer " + storeToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(3))
                 .andExpect(jsonPath("$.content[0].type").value("ADJUSTMENT_OUT"));
@@ -188,13 +192,11 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("INSUFFICIENT_STOCK"));
 
-        mvc.perform(get("/api/v1/products/" + productId)
-                        .header("Authorization", "Bearer " + storeToken))
+        mvc.perform(get("/api/v1/products/" + productId).header("Authorization", "Bearer " + storeToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.currentStock").value(1000.000));
 
-        mvc.perform(get("/api/v1/products/" + productId + "/movements")
-                        .header("Authorization", "Bearer " + storeToken))
+        mvc.perform(get("/api/v1/products/" + productId + "/movements").header("Authorization", "Bearer " + storeToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1));
 
@@ -262,15 +264,15 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
         long lowStockProduct = createProduct("Producto mínimo IT", false, new BigDecimal("1000"));
         long expiringProduct = createProduct("Yogur stock IT", false, BigDecimal.ZERO);
         Instant expiresAt = Instant.now().plus(Duration.ofDays(2)).plus(Duration.ofHours(12));
-        long lotId = id(purchase(expiringProduct, supplierId, "1", "kg", "2.00", null, expiresAt),
-                "$.lotId");
+        long lotId = id(purchase(expiringProduct, supplierId, "1", "kg", "2.00", null, expiresAt), "$.lotId");
 
-        String body = mvc.perform(get("/api/v1/inventory/alerts")
-                        .header("Authorization", "Bearer " + storeToken))
+        String body = mvc.perform(get("/api/v1/inventory/alerts").header("Authorization", "Bearer " + storeToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.lowStockTotal").isNumber())
                 .andExpect(jsonPath("$.expiringTotal").isNumber())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
         List<Map<String, Object>> lowStock = JsonPath.read(body, "$.lowStock");
         assertThat(lowStock)
@@ -278,21 +280,18 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
                         .isEqualTo(lowStockProduct));
 
         List<Map<String, Object>> expiring = JsonPath.read(body, "$.expiring");
-        assertThat(expiring)
-                .anySatisfy(alert -> {
-                    assertThat(((Number) alert.get("lotId")).longValue()).isEqualTo(lotId);
-                    assertThat(((Number) alert.get("daysRemaining")).longValue()).isEqualTo(2);
-                    assertThat(new BigDecimal(alert.get("value").toString()))
-                            .isEqualByComparingTo("2.0000");
-                });
+        assertThat(expiring).anySatisfy(alert -> {
+            assertThat(((Number) alert.get("lotId")).longValue()).isEqualTo(lotId);
+            assertThat(((Number) alert.get("daysRemaining")).longValue()).isEqualTo(2);
+            assertThat(new BigDecimal(alert.get("value").toString())).isEqualByComparingTo("2.0000");
+        });
     }
 
     @Test
     @DisplayName("El kardex no se puede editar ni borrar: ni por API ni por SQL")
     void elKardexEsInmutable() throws Exception {
         long productId = createProduct("Kardex stock IT", false, BigDecimal.ZERO);
-        long movementId = id(purchase(productId, supplierId, "1", "kg", "3.00", null, null),
-                "$.movementId");
+        long movementId = id(purchase(productId, supplierId, "1", "kg", "3.00", null, null), "$.movementId");
 
         mvc.perform(put("/api/v1/products/" + productId + "/movements")
                         .header("Authorization", "Bearer " + storeToken)
@@ -305,14 +304,13 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isMethodNotAllowed());
 
         assertThatThrownBy(() -> jdbcTemplate.update(
-                "update stock_movements set reason = 'Cambio indebido' where id = ?", movementId))
+                        "update stock_movements set reason = 'Cambio indebido' where id = ?", movementId))
                 .isInstanceOf(DataAccessException.class);
-        assertThatThrownBy(() -> jdbcTemplate.update(
-                "delete from stock_movements where id = ?", movementId))
+        assertThatThrownBy(() -> jdbcTemplate.update("delete from stock_movements where id = ?", movementId))
                 .isInstanceOf(DataAccessException.class);
 
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from stock_movements where id = ?", Integer.class, movementId))
+                        "select count(*) from stock_movements where id = ?", Integer.class, movementId))
                 .isEqualTo(1);
     }
 
@@ -321,12 +319,10 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
     void elCocineroNoRegistraMovimientos() throws Exception {
         long productId = createProduct("Permisos stock IT", false, BigDecimal.ZERO);
 
-        mvc.perform(get("/api/v1/products/" + productId + "/movements")
-                        .header("Authorization", "Bearer " + cookToken))
+        mvc.perform(get("/api/v1/products/" + productId + "/movements").header("Authorization", "Bearer " + cookToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(0));
-        mvc.perform(get("/api/v1/inventory/alerts")
-                        .header("Authorization", "Bearer " + cookToken))
+        mvc.perform(get("/api/v1/inventory/alerts").header("Authorization", "Bearer " + cookToken))
                 .andExpect(status().isOk());
 
         mvc.perform(post("/api/v1/products/" + productId + "/purchases")
@@ -351,10 +347,10 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("La compra valida proveedor activo, producto activo y fechas coherentes")
     void laCompraValidaSusDatos() throws Exception {
         long productId = createProduct("Validación stock IT", false, BigDecimal.ZERO);
-        long inactiveSupplier = suppliers.create(establishment.id(), null,
-                new SupplierRegistration("Proveedor inactivo IT", null)).id();
-        suppliers.update(establishment.id(), null, inactiveSupplier,
-                new SupplierModification(null, null, false));
+        long inactiveSupplier = suppliers
+                .create(establishment.id(), null, new SupplierRegistration("Proveedor inactivo IT", null))
+                .id();
+        suppliers.update(establishment.id(), null, inactiveSupplier, new SupplierModification(null, null, false));
 
         mvc.perform(post("/api/v1/products/" + productId + "/purchases")
                         .header("Authorization", "Bearer " + storeToken)
@@ -380,8 +376,8 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(post("/api/v1/products/" + productId + "/purchases")
                         .header("Authorization", "Bearer " + storeToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(purchaseBody(supplierId, "1", "kg", "10.00",
-                                Instant.now().plus(Duration.ofHours(1)), null)))
+                        .content(purchaseBody(
+                                supplierId, "1", "kg", "10.00", Instant.now().plus(Duration.ofHours(1)), null)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
@@ -389,8 +385,8 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(post("/api/v1/products/" + productId + "/purchases")
                         .header("Authorization", "Bearer " + storeToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(purchaseBody(supplierId, "1", "kg", "10.00", received,
-                                received.minus(Duration.ofHours(1)))))
+                        .content(purchaseBody(
+                                supplierId, "1", "kg", "10.00", received, received.minus(Duration.ofHours(1)))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
@@ -409,40 +405,63 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
     }
 
     private long createProduct(String name, boolean allowNegative, BigDecimal minStock) {
-        return products.create(establishment.id(), null,
-                new ProductRegistration(name, categoryId, BaseUnit.G, minStock, allowNegative,
-                        List.of(new UnitConversion("kg", new BigDecimal("1000"))))).id();
+        return products.create(
+                        establishment.id(),
+                        null,
+                        new ProductRegistration(
+                                name,
+                                categoryId,
+                                BaseUnit.G,
+                                minStock,
+                                allowNegative,
+                                List.of(new UnitConversion("kg", new BigDecimal("1000")))))
+                .id();
     }
 
-    private String purchase(long productId, long supplierId, String quantity, String unit,
-            String unitPrice, Instant receivedAt, Instant expiresAt) throws Exception {
+    private String purchase(
+            long productId,
+            long supplierId,
+            String quantity,
+            String unit,
+            String unitPrice,
+            Instant receivedAt,
+            Instant expiresAt)
+            throws Exception {
         return mvc.perform(post("/api/v1/products/" + productId + "/purchases")
                         .header("Authorization", "Bearer " + storeToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(purchaseBody(supplierId, quantity, unit, unitPrice, receivedAt,
-                                expiresAt)))
+                        .content(purchaseBody(supplierId, quantity, unit, unitPrice, receivedAt, expiresAt)))
                 .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
     }
 
-    private static String purchaseBody(long supplierId, String quantity, String unit,
-            String unitPrice, Instant receivedAt, Instant expiresAt) {
+    private static String purchaseBody(
+            long supplierId, String quantity, String unit, String unitPrice, Instant receivedAt, Instant expiresAt) {
         return """
                 {"supplierId":%d,"quantity":%s,"unit":"%s","unitPrice":%s%s%s}
-                """.formatted(supplierId, quantity, unit, unitPrice,
-                receivedAt == null ? "" : ",\"receivedAt\":\"" + receivedAt + "\"",
-                expiresAt == null ? "" : ",\"expiresAt\":\"" + expiresAt + "\"");
+                """.formatted(
+                        supplierId,
+                        quantity,
+                        unit,
+                        unitPrice,
+                        receivedAt == null ? "" : ",\"receivedAt\":\"" + receivedAt + "\"",
+                        expiresAt == null ? "" : ",\"expiresAt\":\"" + expiresAt + "\"");
     }
 
     private Map<Long, BigDecimal> lotRemaining(long productId) throws Exception {
-        String body = mvc.perform(get("/api/v1/products/" + productId + "/lots")
-                        .header("Authorization", "Bearer " + storeToken))
+        String body = mvc.perform(
+                        get("/api/v1/products/" + productId + "/lots").header("Authorization", "Bearer " + storeToken))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         List<Map<String, Object>> lots = JsonPath.read(body, "$.content");
-        return lots.stream().collect(java.util.stream.Collectors.toMap(
-                lot -> ((Number) lot.get("id")).longValue(),
-                lot -> new BigDecimal(lot.get("remainingQty").toString())));
+        return lots.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        lot -> ((Number) lot.get("id")).longValue(),
+                        lot -> new BigDecimal(lot.get("remainingQty").toString())));
     }
 
     private String loginToken(String username) throws Exception {
@@ -452,7 +471,9 @@ class StockMovementsIntegrationTest extends AbstractIntegrationTest {
                                 {"username":"%s","password":"%s"}
                                 """.formatted(username, PASSWORD)))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         return JsonPath.read(body, "$.accessToken");
     }
 

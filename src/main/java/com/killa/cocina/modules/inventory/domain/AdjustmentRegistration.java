@@ -17,8 +17,7 @@ import java.util.List;
  * @param unit unidad de compra registrada para el producto
  * @param reason motivo libre de 5 a 200 caracteres
  */
-public record AdjustmentRegistration(MovementType type, BigDecimal quantity, String unit,
-        String reason) {
+public record AdjustmentRegistration(MovementType type, BigDecimal quantity, String unit, String reason) {
 
     /** Longitud mínima del motivo. */
     public static final int MIN_REASON_LENGTH = 5;
@@ -45,16 +44,17 @@ public record AdjustmentRegistration(MovementType type, BigDecimal quantity, Str
             throw invalid("reason", "el motivo es obligatorio");
         }
         String normalized = reason.trim().replaceAll("\\s+", " ");
-        if (normalized.length() < MIN_REASON_LENGTH
-                || normalized.length() > MAX_REASON_LENGTH) {
-            throw invalid("reason", "debe tener entre " + MIN_REASON_LENGTH + " y "
-                    + MAX_REASON_LENGTH + " caracteres");
+        if (normalized.length() < MIN_REASON_LENGTH || normalized.length() > MAX_REASON_LENGTH) {
+            throw invalid(
+                    "reason", "debe tener entre " + MIN_REASON_LENGTH + " y " + MAX_REASON_LENGTH + " caracteres");
         }
         return normalized;
     }
 
     private static ApiException invalid(String field, String message) {
-        return new ApiException(ErrorCode.VALIDATION_ERROR, "La petición contiene datos no válidos.",
+        return new ApiException(
+                ErrorCode.VALIDATION_ERROR,
+                "La petición contiene datos no válidos.",
                 List.of(new ApiError.FieldViolation(field, message)));
     }
 }

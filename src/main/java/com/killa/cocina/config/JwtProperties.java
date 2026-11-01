@@ -11,5 +11,4 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param refreshTtl vida del refresh token
  */
 @ConfigurationProperties(prefix = "cocina.security.jwt")
-public record JwtProperties(String secret, Duration accessTtl, Duration refreshTtl) {
-}
+public record JwtProperties(String secret, Duration accessTtl, Duration refreshTtl) {}

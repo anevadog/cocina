@@ -6,12 +6,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.jayway.jsonpath.JsonPath;
 import com.killa.cocina.config.EstablishmentProperties;
 import com.killa.cocina.modules.users.domain.Role;
 import com.killa.cocina.modules.users.domain.UserRegistration;
 import com.killa.cocina.modules.users.domain.UserService;
 import com.killa.cocina.support.AbstractIntegrationTest;
-import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -160,7 +160,9 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(credentials(username, password)))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         return JsonPath.read(body, "$.refreshToken");
     }
 
@@ -169,13 +171,14 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(refreshBody(refreshToken)))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         return JsonPath.read(body, "$.refreshToken");
     }
 
     private void createUser(String username, Role role) {
-        users.create(establishment.id(), null,
-                new UserRegistration(username, "Usuario " + username, PASSWORD, role));
+        users.create(establishment.id(), null, new UserRegistration(username, "Usuario " + username, PASSWORD, role));
     }
 
     private static String credentials(String username, String password) {

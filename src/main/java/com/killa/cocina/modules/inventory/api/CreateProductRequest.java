@@ -16,16 +16,13 @@ import java.util.List;
  * <p>La unidad base no se puede cambiar después: reinterpreta todo el stock histórico.</p>
  */
 public record CreateProductRequest(
-        @NotBlank(message = "es obligatorio")
-        @Size(min = 2, max = 120, message = "debe tener entre 2 y 120 caracteres")
+        @NotBlank(message = "es obligatorio") @Size(min = 2, max = 120, message = "debe tener entre 2 y 120 caracteres")
         String name,
 
-        @NotNull(message = "es obligatorio")
-        @Positive(message = "debe ser mayor que cero")
+        @NotNull(message = "es obligatorio") @Positive(message = "debe ser mayor que cero")
         Long categoryId,
 
-        @NotNull(message = "es obligatorio")
-        BaseUnit baseUnit,
+        @NotNull(message = "es obligatorio") BaseUnit baseUnit,
 
         @DecimalMin(value = "0", message = "no puede ser negativo")
         BigDecimal minStock,

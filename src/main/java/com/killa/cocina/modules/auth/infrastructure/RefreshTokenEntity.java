@@ -17,8 +17,7 @@ public class RefreshTokenEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "refresh_tokens_seq")
-    @SequenceGenerator(name = "refresh_tokens_seq", sequenceName = "refresh_tokens_seq",
-            allocationSize = 1)
+    @SequenceGenerator(name = "refresh_tokens_seq", sequenceName = "refresh_tokens_seq", allocationSize = 1)
     private Long id;
 
     @Column(name = "establishment_id", nullable = false)
@@ -42,8 +41,7 @@ public class RefreshTokenEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    protected RefreshTokenEntity() {
-    }
+    protected RefreshTokenEntity() {}
 
     private RefreshTokenEntity(RefreshToken token) {
         apply(token);
@@ -65,7 +63,6 @@ public class RefreshTokenEntity {
     }
 
     RefreshToken toDomain() {
-        return new RefreshToken(id, establishmentId, userId, tokenHash, expiresAt, revokedAt,
-                replacedBy, createdAt);
+        return new RefreshToken(id, establishmentId, userId, tokenHash, expiresAt, revokedAt, replacedBy, createdAt);
     }
 }

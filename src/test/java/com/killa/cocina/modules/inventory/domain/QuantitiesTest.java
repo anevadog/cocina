@@ -18,8 +18,7 @@ class QuantitiesTest {
 
     private static final Product CHICKEN = product("Pollo", BaseUnit.G);
 
-    private static final List<UnitConversion> CONVERSIONS =
-            List.of(new UnitConversion("kg", new BigDecimal("1000")));
+    private static final List<UnitConversion> CONVERSIONS = List.of(new UnitConversion("kg", new BigDecimal("1000")));
 
     @Test
     @DisplayName("0,25 kg se guardan como 250,000 g en la unidad base")
@@ -49,11 +48,10 @@ class QuantitiesTest {
     @Test
     @DisplayName("g → ml se rechaza con UNIT_INCOMPATIBLE")
     void rechazaUnaUnidadDeOtraDimension() {
-        assertThatThrownBy(
-                () -> Quantities.toBase(CHICKEN, List.of(), new BigDecimal("100"), "ml"))
+        assertThatThrownBy(() -> Quantities.toBase(CHICKEN, List.of(), new BigDecimal("100"), "ml"))
                 .isInstanceOf(ApiException.class)
-                .satisfies(exception -> assertThat(((ApiException) exception).code())
-                        .isEqualTo(ErrorCode.UNIT_INCOMPATIBLE));
+                .satisfies(exception ->
+                        assertThat(((ApiException) exception).code()).isEqualTo(ErrorCode.UNIT_INCOMPATIBLE));
     }
 
     @Test
@@ -61,12 +59,12 @@ class QuantitiesTest {
     void rechazaCantidadesNoPositivas() {
         assertThatThrownBy(() -> Quantities.toBase(CHICKEN, CONVERSIONS, BigDecimal.ZERO, "kg"))
                 .isInstanceOf(ApiException.class)
-                .satisfies(exception -> assertThat(((ApiException) exception).code())
-                        .isEqualTo(ErrorCode.VALIDATION_ERROR));
+                .satisfies(exception ->
+                        assertThat(((ApiException) exception).code()).isEqualTo(ErrorCode.VALIDATION_ERROR));
         assertThatThrownBy(() -> Quantities.toBase(CHICKEN, CONVERSIONS, null, "kg"))
                 .isInstanceOf(ApiException.class)
-                .satisfies(exception -> assertThat(((ApiException) exception).code())
-                        .isEqualTo(ErrorCode.VALIDATION_ERROR));
+                .satisfies(exception ->
+                        assertThat(((ApiException) exception).code()).isEqualTo(ErrorCode.VALIDATION_ERROR));
     }
 
     @Test
@@ -87,7 +85,7 @@ class QuantitiesTest {
     }
 
     private static Product product(String name, BaseUnit baseUnit) {
-        return new Product(1L, 1L, 1L, name, baseUnit, BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, false, true, NOW, NOW);
+        return new Product(
+                1L, 1L, 1L, name, baseUnit, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false, true, NOW, NOW);
     }
 }

@@ -11,9 +11,17 @@ import java.time.Instant;
  * {@code products.current_stock}. El lote nace en una compra o en un ajuste positivo (sin proveedor
  * ni caducidad).</p>
  */
-public record StockLot(Long id, long establishmentId, long productId, Long supplierId,
-        Instant receivedAt, Instant expiresAt, BigDecimal unitCost, BigDecimal initialQty,
-        BigDecimal remainingQty, Instant createdAt) {
+public record StockLot(
+        Long id,
+        long establishmentId,
+        long productId,
+        Long supplierId,
+        Instant receivedAt,
+        Instant expiresAt,
+        BigDecimal unitCost,
+        BigDecimal initialQty,
+        BigDecimal remainingQty,
+        Instant createdAt) {
 
     public StockLot {
         if (unitCost == null || unitCost.signum() < 0) {
@@ -22,8 +30,7 @@ public record StockLot(Long id, long establishmentId, long productId, Long suppl
         if (initialQty == null || initialQty.signum() <= 0) {
             throw Quantities.invalid("initialQty", "debe ser mayor que cero");
         }
-        if (remainingQty == null || remainingQty.signum() < 0
-                || remainingQty.compareTo(initialQty) > 0) {
+        if (remainingQty == null || remainingQty.signum() < 0 || remainingQty.compareTo(initialQty) > 0) {
             throw Quantities.invalid("remainingQty", "debe estar entre cero y la cantidad inicial");
         }
         unitCost = Quantities.cost(unitCost);
@@ -32,11 +39,17 @@ public record StockLot(Long id, long establishmentId, long productId, Long suppl
     }
 
     /** Alta de lote; el saldo inicial y el restante coinciden. */
-    public static StockLot create(long establishmentId, long productId, Long supplierId,
-            Instant receivedAt, Instant expiresAt, BigDecimal unitCost, BigDecimal quantity,
+    public static StockLot create(
+            long establishmentId,
+            long productId,
+            Long supplierId,
+            Instant receivedAt,
+            Instant expiresAt,
+            BigDecimal unitCost,
+            BigDecimal quantity,
             Instant now) {
-        return new StockLot(null, establishmentId, productId, supplierId, receivedAt, expiresAt,
-                unitCost, quantity, quantity, now);
+        return new StockLot(
+                null, establishmentId, productId, supplierId, receivedAt, expiresAt, unitCost, quantity, quantity, now);
     }
 
     /** Un lote con fecha es caducado desde ese instante (CAL-04). */
@@ -46,8 +59,7 @@ public record StockLot(Long id, long establishmentId, long productId, Long suppl
 
     /** Entra en la alerta si caduca dentro de la ventana y aún queda stock. */
     public boolean expiresWithin(Instant now, Duration window) {
-        return expiresAt != null && remainingQty.signum() > 0
-                && !expiresAt.isAfter(now.plus(window));
+        return expiresAt != null && remainingQty.signum() > 0 && !expiresAt.isAfter(now.plus(window));
     }
 
     /** Valor del saldo restante, redondeado a la escala monetaria. */
@@ -57,11 +69,19 @@ public record StockLot(Long id, long establishmentId, long productId, Long suppl
 
     /** Descuenta cantidad del lote; la cantidad no puede superar el saldo restante. */
     public StockLot consume(BigDecimal quantity) {
-        if (quantity == null || quantity.signum() <= 0
-                || quantity.compareTo(remainingQty) > 0) {
+        if (quantity == null || quantity.signum() <= 0 || quantity.compareTo(remainingQty) > 0) {
             throw new IllegalArgumentException("Consumo de lote fuera de rango: " + quantity);
         }
-        return new StockLot(id, establishmentId, productId, supplierId, receivedAt, expiresAt,
-                unitCost, initialQty, remainingQty.subtract(quantity), createdAt);
+        return new StockLot(
+                id,
+                establishmentId,
+                productId,
+                supplierId,
+                receivedAt,
+                expiresAt,
+                unitCost,
+                initialQty,
+                remainingQty.subtract(quantity),
+                createdAt);
     }
 }

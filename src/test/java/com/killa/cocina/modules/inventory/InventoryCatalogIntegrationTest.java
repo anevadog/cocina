@@ -58,10 +58,12 @@ class InventoryCatalogIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeAll
     void prepararUsuarios() throws Exception {
-        storekeeperId = users.create(establishment.id(), null,
-                new UserRegistration("catalog.store", "Almacenera", PASSWORD, Role.STOREKEEPER)).id();
-        users.create(establishment.id(), null,
-                new UserRegistration("catalog.cook", "Cocinera", PASSWORD, Role.COOK));
+        storekeeperId = users.create(
+                        establishment.id(),
+                        null,
+                        new UserRegistration("catalog.store", "Almacenera", PASSWORD, Role.STOREKEEPER))
+                .id();
+        users.create(establishment.id(), null, new UserRegistration("catalog.cook", "Cocinera", PASSWORD, Role.COOK));
         storeToken = loginToken("catalog.store");
         cookToken = loginToken("catalog.cook");
     }
@@ -86,7 +88,9 @@ class InventoryCatalogIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.lowStock").value(true))
                 .andExpect(jsonPath("$.active").value(true))
                 .andExpect(jsonPath("$.conversions[0].unit").value("kg"))
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
         int productId = JsonPath.read(body, "$.id");
         assertThat(new BigDecimal(JsonPath.read(body, "$.currentStock").toString()))
@@ -94,13 +98,11 @@ class InventoryCatalogIntegrationTest extends AbstractIntegrationTest {
         assertThat(new BigDecimal(JsonPath.read(body, "$.currentAvgCost").toString()))
                 .isEqualByComparingTo("0");
 
-        mvc.perform(get("/api/v1/products/" + productId)
-                        .header("Authorization", "Bearer " + storeToken))
+        mvc.perform(get("/api/v1/products/" + productId).header("Authorization", "Bearer " + storeToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Pollo IT"));
 
-        mvc.perform(get("/api/v1/products?categoryId=" + categoryId)
-                        .header("Authorization", "Bearer " + storeToken))
+        mvc.perform(get("/api/v1/products?categoryId=" + categoryId).header("Authorization", "Bearer " + storeToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.content[0].name").value("Pollo IT"));
@@ -198,8 +200,7 @@ class InventoryCatalogIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("RESOURCE_IN_USE"));
 
-        mvc.perform(get("/api/v1/products/" + withStock)
-                        .header("Authorization", "Bearer " + storeToken))
+        mvc.perform(get("/api/v1/products/" + withStock).header("Authorization", "Bearer " + storeToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active").value(true));
 
@@ -212,8 +213,10 @@ class InventoryCatalogIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.active").value(false));
 
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from audit_logs where action = 'PRODUCT_ARCHIVED' and entity_id = ?",
-                Integer.class, withoutStock)).isEqualTo(1);
+                        "select count(*) from audit_logs where action = 'PRODUCT_ARCHIVED' and entity_id = ?",
+                        Integer.class,
+                        withoutStock))
+                .isEqualTo(1);
     }
 
     @Test
@@ -265,7 +268,9 @@ class InventoryCatalogIntegrationTest extends AbstractIntegrationTest {
                         .content("{\"name\":\"" + name + "\",\"contact\":\"proveedor@example.test\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.active").value(true))
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
         int supplierId = JsonPath.read(body, "$.id");
 
@@ -283,8 +288,7 @@ class InventoryCatalogIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active").value(false));
 
-        mvc.perform(get("/api/v1/suppliers/" + supplierId)
-                        .header("Authorization", "Bearer " + storeToken))
+        mvc.perform(get("/api/v1/suppliers/" + supplierId).header("Authorization", "Bearer " + storeToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value(name));
     }
@@ -295,7 +299,9 @@ class InventoryCatalogIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"" + name + "\"}"))
                 .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         return ((Number) JsonPath.read(body, "$.id")).longValue();
     }
 
@@ -307,7 +313,9 @@ class InventoryCatalogIntegrationTest extends AbstractIntegrationTest {
                                 {"name":"%s","categoryId":%d,"baseUnit":"G"}
                                 """.formatted(name, categoryId)))
                 .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         return ((Number) JsonPath.read(body, "$.id")).longValue();
     }
 
@@ -318,7 +326,9 @@ class InventoryCatalogIntegrationTest extends AbstractIntegrationTest {
                                 {"username":"%s","password":"%s"}
                                 """.formatted(username, PASSWORD)))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         return JsonPath.read(body, "$.accessToken");
     }
 }

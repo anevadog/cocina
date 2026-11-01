@@ -18,8 +18,7 @@ public final class PasswordPolicy {
 
     public static final int MAX_LENGTH = 128;
 
-    private PasswordPolicy() {
-    }
+    private PasswordPolicy() {}
 
     /**
      * Valida la contraseña en claro antes de calcular el hash.
@@ -42,7 +41,9 @@ public final class PasswordPolicy {
     }
 
     private static ApiException weak(String message) {
-        return new ApiException(ErrorCode.WEAK_PASSWORD, "La contraseña no cumple la política mínima.",
+        return new ApiException(
+                ErrorCode.WEAK_PASSWORD,
+                "La contraseña no cumple la política mínima.",
                 List.of(new ApiError.FieldViolation("password", message)));
     }
 }

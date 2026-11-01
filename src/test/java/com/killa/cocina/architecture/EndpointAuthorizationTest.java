@@ -31,8 +31,7 @@ class EndpointAuthorizationTest {
 
     /** Endpoints públicos por diseño: el login no puede exigir token y refresh/logout se autentican
      * con el propio refresh token. */
-    private static final Set<String> PUBLIC_CONTROLLERS = Set.of(
-            "com.killa.cocina.modules.auth.api.AuthController");
+    private static final Set<String> PUBLIC_CONTROLLERS = Set.of("com.killa.cocina.modules.auth.api.AuthController");
 
     private static final Pattern QUOTED_CODE = Pattern.compile("'([^']+)'");
 
@@ -70,9 +69,8 @@ class EndpointAuthorizationTest {
     @Test
     @DisplayName("Cada permiso citado en @PreAuthorize existe en la matriz de permisos")
     void losPermisosCitadosExisten() {
-        Set<String> known = Arrays.stream(Permission.values())
-                .map(Permission::code)
-                .collect(Collectors.toSet());
+        Set<String> known =
+                Arrays.stream(Permission.values()).map(Permission::code).collect(Collectors.toSet());
         List<String> unknown = new ArrayList<>();
 
         for (JavaClass controller : MODULE_CLASSES) {
@@ -83,7 +81,8 @@ class EndpointAuthorizationTest {
                 if (!method.isAnnotatedWith(PreAuthorize.class)) {
                     continue;
                 }
-                String expression = method.getAnnotationOfType(PreAuthorize.class).value();
+                String expression =
+                        method.getAnnotationOfType(PreAuthorize.class).value();
                 Matcher matcher = QUOTED_CODE.matcher(expression);
                 while (matcher.find()) {
                     if (!known.contains(matcher.group(1))) {
@@ -99,7 +98,6 @@ class EndpointAuthorizationTest {
     }
 
     private static boolean isEndpoint(JavaMethod method) {
-        return method.isAnnotatedWith(RequestMapping.class)
-                || method.isMetaAnnotatedWith(RequestMapping.class);
+        return method.isAnnotatedWith(RequestMapping.class) || method.isMetaAnnotatedWith(RequestMapping.class);
     }
 }

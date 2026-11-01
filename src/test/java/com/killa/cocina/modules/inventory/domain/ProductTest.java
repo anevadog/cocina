@@ -18,18 +18,22 @@ class ProductTest {
     @Test
     @DisplayName("Un producto activo por debajo del mínimo está en alerta")
     void detectaStockBajoMinimo() {
-        assertThat(product(new BigDecimal("1000"), new BigDecimal("999.999"), true).isLowStock())
+        assertThat(product(new BigDecimal("1000"), new BigDecimal("999.999"), true)
+                        .isLowStock())
                 .isTrue();
         assertThat(product(new BigDecimal("1000"), new BigDecimal("1000"), true).isLowStock())
                 .isFalse();
-        assertThat(product(new BigDecimal("1000"), BigDecimal.ZERO, false).isLowStock()).isFalse();
+        assertThat(product(new BigDecimal("1000"), BigDecimal.ZERO, false).isLowStock())
+                .isFalse();
     }
 
     @Test
     @DisplayName("Solo se archiva un producto con stock cero")
     void soloSeArchivaSinStock() {
-        assertThat(product(BigDecimal.ZERO, BigDecimal.ZERO, true).canBeArchived()).isTrue();
-        assertThat(product(BigDecimal.ZERO, new BigDecimal("0.001"), true).canBeArchived()).isFalse();
+        assertThat(product(BigDecimal.ZERO, BigDecimal.ZERO, true).canBeArchived())
+                .isTrue();
+        assertThat(product(BigDecimal.ZERO, new BigDecimal("0.001"), true).canBeArchived())
+                .isFalse();
     }
 
     @Test
@@ -38,8 +42,7 @@ class ProductTest {
         Product original = product(BigDecimal.ONE, BigDecimal.TEN, true);
         Instant later = NOW.plusSeconds(60);
 
-        Product updated = original.update("Pollo limpio", 9L, new BigDecimal("2000"), true, false,
-                later);
+        Product updated = original.update("Pollo limpio", 9L, new BigDecimal("2000"), true, false, later);
 
         assertThat(updated.id()).isEqualTo(original.id());
         assertThat(updated.establishmentId()).isEqualTo(original.establishmentId());
@@ -56,8 +59,8 @@ class ProductTest {
     @Test
     @DisplayName("El alta normaliza el nombre y deja el mínimo a cero con tres decimales")
     void elAltaNormalizaLosDatos() {
-        ProductRegistration registration = new ProductRegistration("  Pollo   entero ", 1L,
-                BaseUnit.G, null, false, List.of());
+        ProductRegistration registration =
+                new ProductRegistration("  Pollo   entero ", 1L, BaseUnit.G, null, false, List.of());
 
         assertThat(registration.name()).isEqualTo("Pollo entero");
         assertThat(registration.minStock()).isEqualByComparingTo("0");
@@ -67,13 +70,13 @@ class ProductTest {
     @Test
     @DisplayName("Un mínimo negativo se rechaza antes de tocar la base")
     void rechazaMinimoNegativo() {
-        assertThatThrownBy(() -> new ProductRegistration("Pollo", 1L, BaseUnit.G,
-                new BigDecimal("-1"), false, List.of()))
+        assertThatThrownBy(
+                        () -> new ProductRegistration("Pollo", 1L, BaseUnit.G, new BigDecimal("-1"), false, List.of()))
                 .isInstanceOf(ApiException.class);
     }
 
     private static Product product(BigDecimal minStock, BigDecimal currentStock, boolean active) {
-        return new Product(1L, 1L, 1L, "Pollo", BaseUnit.G, minStock, currentStock, BigDecimal.ZERO,
-                false, active, NOW, NOW);
+        return new Product(
+                1L, 1L, 1L, "Pollo", BaseUnit.G, minStock, currentStock, BigDecimal.ZERO, false, active, NOW, NOW);
     }
 }

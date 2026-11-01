@@ -10,9 +10,20 @@ import java.time.Instant;
  * saldo resultante y {@code unitCost} el coste aplicado por unidad base, congelado en el momento del
  * hecho.</p>
  */
-public record StockMovement(Long id, long establishmentId, long productId, Long lotId,
-        MovementType type, BigDecimal quantityBase, BigDecimal unitCost, BigDecimal balanceAfter,
-        String reason, String referenceType, Long referenceId, long actorId, Instant occurredAt) {
+public record StockMovement(
+        Long id,
+        long establishmentId,
+        long productId,
+        Long lotId,
+        MovementType type,
+        BigDecimal quantityBase,
+        BigDecimal unitCost,
+        BigDecimal balanceAfter,
+        String reason,
+        String referenceType,
+        Long referenceId,
+        long actorId,
+        Instant occurredAt) {
 
     public StockMovement {
         if (type == null) {

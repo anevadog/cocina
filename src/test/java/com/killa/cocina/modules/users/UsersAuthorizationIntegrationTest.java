@@ -56,10 +56,12 @@ class UsersAuthorizationIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeAll
     void prepararUsuarios() throws Exception {
-        adminId = users.create(establishment.id(), null,
-                new UserRegistration("users.admin", "Administradora", PASSWORD, Role.ADMIN)).id();
-        users.create(establishment.id(), null,
-                new UserRegistration("users.cook", "Cocinera", PASSWORD, Role.COOK));
+        adminId = users.create(
+                        establishment.id(),
+                        null,
+                        new UserRegistration("users.admin", "Administradora", PASSWORD, Role.ADMIN))
+                .id();
+        users.create(establishment.id(), null, new UserRegistration("users.cook", "Cocinera", PASSWORD, Role.COOK));
         adminToken = loginToken("users.admin");
         cookToken = loginToken("users.cook");
     }
@@ -92,7 +94,9 @@ class UsersAuthorizationIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.role").value("STOREKEEPER"))
                 .andExpect(jsonPath("$.active").value(true))
                 .andExpect(jsonPath("$.password").doesNotExist())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
         int createdId = JsonPath.read(body, "$.id");
 
@@ -144,8 +148,7 @@ class UsersAuthorizationIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
-        mvc.perform(get("/api/v1/users/" + adminId)
-                        .header("Authorization", "Bearer " + adminToken))
+        mvc.perform(get("/api/v1/users/" + adminId).header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active").value(true));
     }
@@ -153,8 +156,7 @@ class UsersAuthorizationIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("El listado devuelve página, total y solo usuarios del establecimiento")
     void elListadoEsPaginado() throws Exception {
-        mvc.perform(get("/api/v1/users?page=0&size=2")
-                        .header("Authorization", "Bearer " + adminToken))
+        mvc.perform(get("/api/v1/users?page=0&size=2").header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(2))
@@ -169,7 +171,9 @@ class UsersAuthorizationIntegrationTest extends AbstractIntegrationTest {
                                 {"username":"%s","password":"%s"}
                                 """.formatted(username, PASSWORD)))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         return JsonPath.read(body, "$.accessToken");
     }
 

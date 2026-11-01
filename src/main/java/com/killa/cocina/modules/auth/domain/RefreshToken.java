@@ -8,8 +8,15 @@ import java.time.Instant;
  * <p>{@code revokedAt} marca un token ya usado o anulado y {@code replacedBy} enlaza con el token
  * que lo sustituyó, de modo que se puede detectar la reutilización de un token rotado.</p>
  */
-public record RefreshToken(Long id, long establishmentId, long userId, String tokenHash,
-        Instant expiresAt, Instant revokedAt, Long replacedBy, Instant createdAt) {
+public record RefreshToken(
+        Long id,
+        long establishmentId,
+        long userId,
+        String tokenHash,
+        Instant expiresAt,
+        Instant revokedAt,
+        Long replacedBy,
+        Instant createdAt) {
 
     public boolean isRevoked() {
         return revokedAt != null;
@@ -24,7 +31,6 @@ public record RefreshToken(Long id, long establishmentId, long userId, String to
     }
 
     public RefreshToken revoke(Instant now, Long replacementId) {
-        return new RefreshToken(id, establishmentId, userId, tokenHash, expiresAt, now,
-                replacementId, createdAt);
+        return new RefreshToken(id, establishmentId, userId, tokenHash, expiresAt, now, replacementId, createdAt);
     }
 }

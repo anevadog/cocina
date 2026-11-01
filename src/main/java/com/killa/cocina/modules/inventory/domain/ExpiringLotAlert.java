@@ -9,6 +9,12 @@ import java.time.Instant;
  * @param daysRemaining días completos hasta la caducidad; negativo si ya caducó
  * @param value valor del saldo restante al coste del lote
  */
-public record ExpiringLotAlert(Long lotId, Long productId, String productName, Instant expiresAt,
-        long daysRemaining, BigDecimal remainingQty, BigDecimal unitCost, BigDecimal value) {
-}
+public record ExpiringLotAlert(
+        Long lotId,
+        Long productId,
+        String productName,
+        Instant expiresAt,
+        long daysRemaining,
+        BigDecimal remainingQty,
+        BigDecimal unitCost,
+        BigDecimal value) {}

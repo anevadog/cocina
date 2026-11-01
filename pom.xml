@@ -23,6 +23,10 @@
     <springdoc.version>3.2.0</springdoc.version>
     <archunit.version>1.5.1</archunit.version>
     <bouncycastle.version>1.86</bouncycastle.version>
+    <!-- Calidad: formato automático y cobertura en modo informe (ADR-032, P5). -->
+    <spotless.version>3.10.4</spotless.version>
+    <palantir-java-format.version>2.103.0</palantir-java-format.version>
+    <jacoco.version>0.8.16</jacoco.version>
   </properties>
 
   <dependencies>
@@ -111,6 +115,51 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <!-- Formato único y verificable: `./mvnw spotless:apply` corrige y `verify` comprueba. -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${spotless.version}</version>
+        <configuration>
+          <java>
+            <palantirJavaFormat>
+              <version>${palantir-java-format.version}</version>
+            </palantirJavaFormat>
+            <trimTrailingWhitespace/>
+            <endWithNewline/>
+          </java>
+        </configuration>
+        <executions>
+          <execution>
+            <id>spotless-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Cobertura informativa: se publica el informe, sin umbral que rompa el build (P5). -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

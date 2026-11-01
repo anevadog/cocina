@@ -23,13 +23,15 @@ class StockMovementRepositoryAdapter implements StockMovementRepository {
 
     @Override
     public StockMovement save(StockMovement movement) {
-        return movements.save(StockMovementEntity.from(movement, Instant.now(clock))).toDomain();
+        return movements
+                .save(StockMovementEntity.from(movement, Instant.now(clock)))
+                .toDomain();
     }
 
     @Override
-    public List<StockMovement> findByProduct(long establishmentId, long productId, int page,
-            int size) {
-        return movements.findByEstablishmentIdAndProductIdOrderByOccurredAtDescIdDesc(
+    public List<StockMovement> findByProduct(long establishmentId, long productId, int page, int size) {
+        return movements
+                .findByEstablishmentIdAndProductIdOrderByOccurredAtDescIdDesc(
                         establishmentId, productId, PageRequest.of(page, size))
                 .stream()
                 .map(StockMovementEntity::toDomain)

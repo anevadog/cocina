@@ -10,5 +10,4 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param lockDuration duración del bloqueo temporal
  */
 @ConfigurationProperties(prefix = "cocina.security.login")
-public record LoginProperties(int maxFailedAttempts, Duration lockDuration) {
-}
+public record LoginProperties(int maxFailedAttempts, Duration lockDuration) {}

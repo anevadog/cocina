@@ -48,8 +48,12 @@ public class ProductApplicationService implements ProductService {
 
     private final Clock clock;
 
-    public ProductApplicationService(ProductRepository products, CategoryRepository categories,
-            AuditRecorder audit, ObjectMapper objectMapper, Clock clock) {
+    public ProductApplicationService(
+            ProductRepository products,
+            CategoryRepository categories,
+            AuditRecorder audit,
+            ObjectMapper objectMapper,
+            Clock clock) {
         this.products = products;
         this.categories = categories;
         this.audit = audit;
@@ -64,21 +68,35 @@ public class ProductApplicationService implements ProductService {
             throw duplicateName(registration.name());
         }
         Instant now = Instant.now(clock);
-        Product product = new Product(null, establishmentId, registration.categoryId(),
-                registration.name(), registration.baseUnit(), registration.minStock(),
-                Quantities.stock(BigDecimal.ZERO), Quantities.cost(BigDecimal.ZERO),
-                registration.allowNegative(), true, now, now);
+        Product product = new Product(
+                null,
+                establishmentId,
+                registration.categoryId(),
+                registration.name(),
+                registration.baseUnit(),
+                registration.minStock(),
+                Quantities.stock(BigDecimal.ZERO),
+                Quantities.cost(BigDecimal.ZERO),
+                registration.allowNegative(),
+                true,
+                now,
+                now);
 
         Product saved = products.save(product);
         products.replaceConversions(establishmentId, saved.id(), registration.conversions(), now);
-        audit.record(establishmentId, actorId, AuditAction.PRODUCT_CREATED, "product", saved.id(),
-                null, snapshot(saved, registration.conversions()));
+        audit.record(
+                establishmentId,
+                actorId,
+                AuditAction.PRODUCT_CREATED,
+                "product",
+                saved.id(),
+                null,
+                snapshot(saved, registration.conversions()));
         return ProductView.from(saved, registration.conversions());
     }
 
     @Override
-    public ProductView update(long establishmentId, Long actorId, long productId,
-            ProductModification modification) {
+    public ProductView update(long establishmentId, Long actorId, long productId, ProductModification modification) {
         Product current = requireProduct(establishmentId, productId);
         if (modification.isEmpty()) {
             return ProductView.from(current, products.conversions(productId));
@@ -90,30 +108,42 @@ public class ProductApplicationService implements ProductService {
             throw duplicateName(updated.name());
         }
         if (current.active() && !updated.active() && !current.canBeArchived()) {
-            throw new ApiException(ErrorCode.RESOURCE_IN_USE,
+            throw new ApiException(
+                    ErrorCode.RESOURCE_IN_USE,
                     "No se puede archivar un producto con stock distinto de cero. Ajusta el stock primero.");
         }
 
         Product saved = products.save(updated);
         List<UnitConversion> conversions = products.conversions(productId);
-        AuditAction action = current.active() && !saved.active()
-                ? AuditAction.PRODUCT_ARCHIVED
-                : AuditAction.PRODUCT_UPDATED;
-        audit.record(establishmentId, actorId, action, "product", saved.id(),
-                snapshot(current, conversions), snapshot(saved, conversions));
+        AuditAction action =
+                current.active() && !saved.active() ? AuditAction.PRODUCT_ARCHIVED : AuditAction.PRODUCT_UPDATED;
+        audit.record(
+                establishmentId,
+                actorId,
+                action,
+                "product",
+                saved.id(),
+                snapshot(current, conversions),
+                snapshot(saved, conversions));
         return ProductView.from(saved, conversions);
     }
 
     @Override
-    public ProductView replaceConversions(long establishmentId, Long actorId, long productId,
-            List<UnitConversion> conversions) {
+    public ProductView replaceConversions(
+            long establishmentId, Long actorId, long productId, List<UnitConversion> conversions) {
         Product product = requireProduct(establishmentId, productId);
         List<UnitConversion> validated = Conversions.validate(conversions, product.baseUnit());
         List<UnitConversion> before = products.conversions(productId);
 
         products.replaceConversions(establishmentId, productId, validated, Instant.now(clock));
-        audit.record(establishmentId, actorId, AuditAction.PRODUCT_CONVERSIONS_UPDATED, "product",
-                productId, snapshot(product, before), snapshot(product, validated));
+        audit.record(
+                establishmentId,
+                actorId,
+                AuditAction.PRODUCT_CONVERSIONS_UPDATED,
+                "product",
+                productId,
+                snapshot(product, before),
+                snapshot(product, validated));
         return ProductView.from(product, validated);
     }
 
@@ -133,8 +163,7 @@ public class ProductApplicationService implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResult<ProductView> list(long establishmentId, ProductFilter filter, int page,
-            int size) {
+    public PageResult<ProductView> list(long establishmentId, ProductFilter filter, int page, int size) {
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
         // El catálogo es pequeño (decenas o cientos de productos) y las conversiones se piden por
@@ -147,21 +176,22 @@ public class ProductApplicationService implements ProductService {
 
     private Product requireProduct(long establishmentId, long productId) {
         return products.findById(establishmentId, productId)
-                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,
-                        "El producto " + productId + " no existe."));
+                .orElseThrow(() ->
+                        new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "El producto " + productId + " no existe."));
     }
 
     private void requireCategory(long establishmentId, long categoryId) {
-        categories.findById(establishmentId, categoryId)
-                .orElseThrow(() -> new ApiException(ErrorCode.VALIDATION_ERROR,
+        categories
+                .findById(establishmentId, categoryId)
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.VALIDATION_ERROR,
                         "La petición contiene datos no válidos.",
                         List.of(new com.killa.cocina.shared.error.ApiError.FieldViolation(
                                 "categoryId", "la categoría " + categoryId + " no existe"))));
     }
 
     private static ApiException duplicateName(String name) {
-        return new ApiException(ErrorCode.DUPLICATE_NAME,
-                "Ya existe un producto con el nombre '" + name + "'.");
+        return new ApiException(ErrorCode.DUPLICATE_NAME, "Ya existe un producto con el nombre '" + name + "'.");
     }
 
     private String snapshot(Product product, List<UnitConversion> conversions) {
@@ -172,10 +202,15 @@ public class ProductApplicationService implements ProductService {
         values.put("minStock", product.minStock().toPlainString());
         values.put("allowNegative", product.allowNegative());
         values.put("active", product.active());
-        values.put("conversions", conversions.stream()
-                .map(conversion -> Map.of("unit", conversion.unit(),
-                        "factorToBase", conversion.factorToBase().stripTrailingZeros().toPlainString()))
-                .toList());
+        values.put(
+                "conversions",
+                conversions.stream()
+                        .map(conversion -> Map.of(
+                                "unit",
+                                conversion.unit(),
+                                "factorToBase",
+                                conversion.factorToBase().stripTrailingZeros().toPlainString()))
+                        .toList());
         return objectMapper.writeValueAsString(values);
     }
 }

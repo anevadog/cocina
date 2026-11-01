@@ -30,9 +30,10 @@ public class InventoryAlertController {
     @GetMapping("/alerts")
     @PreAuthorize("hasAuthority('inventory:read')")
     public InventoryAlertsResponse alerts() {
-        CurrentActor.Actor actor = currentActor.find()
-                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED,
-                        "Necesitas autenticarte para acceder a este recurso."));
+        CurrentActor.Actor actor = currentActor
+                .find()
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.UNAUTHORIZED, "Necesitas autenticarte para acceder a este recurso."));
         return InventoryAlertsResponse.from(stockService.alerts(actor.establishmentId()));
     }
 }

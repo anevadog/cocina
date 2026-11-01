@@ -20,8 +20,7 @@ class SupplierRepositoryAdapter implements SupplierRepository {
 
     @Override
     public Optional<Supplier> findById(long establishmentId, long supplierId) {
-        return suppliers.findByIdAndEstablishmentId(supplierId, establishmentId)
-                .map(SupplierEntity::toDomain);
+        return suppliers.findByIdAndEstablishmentId(supplierId, establishmentId).map(SupplierEntity::toDomain);
     }
 
     @Override
@@ -42,7 +41,9 @@ class SupplierRepositoryAdapter implements SupplierRepository {
 
     @Override
     public List<Supplier> findAll(long establishmentId, int page, int size) {
-        return suppliers.findByEstablishmentIdOrderByNameAsc(establishmentId,
+        return suppliers
+                .findByEstablishmentIdOrderByNameAsc(
+                        establishmentId,
                         PageRequest.of(page, size, Sort.by("name").ascending()))
                 .stream()
                 .map(SupplierEntity::toDomain)

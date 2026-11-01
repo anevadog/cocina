@@ -16,8 +16,7 @@ import java.math.BigDecimal;
  * cualquier otro valor.</p>
  */
 public record AdjustmentRequest(
-        @NotNull(message = "es obligatorio")
-        MovementType type,
+        @NotNull(message = "es obligatorio") MovementType type,
 
         @NotNull(message = "es obligatorio")
         @DecimalMin(value = "0", inclusive = false, message = "debe ser mayor que cero")
@@ -29,8 +28,8 @@ public record AdjustmentRequest(
         String unit,
 
         @NotBlank(message = "es obligatorio")
-        @Size(min = AdjustmentRegistration.MIN_REASON_LENGTH,
+        @Size(
+                min = AdjustmentRegistration.MIN_REASON_LENGTH,
                 max = AdjustmentRegistration.MAX_REASON_LENGTH,
                 message = "debe tener entre 5 y 200 caracteres")
-        String reason) {
-}
+        String reason) {}

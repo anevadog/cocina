@@ -26,8 +26,7 @@ public final class Quantities {
     /** Redondeo único del módulo. */
     public static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
 
-    private Quantities() {
-    }
+    private Quantities() {}
 
     /** Normaliza una cantidad a la escala de stock. */
     public static BigDecimal stock(BigDecimal value) {
@@ -45,8 +44,8 @@ public final class Quantities {
      * @throws ApiException {@link ErrorCode#UNIT_INCOMPATIBLE} si la unidad no es la base ni está
      *         registrada para ese producto
      */
-    public static BigDecimal toBase(Product product, List<UnitConversion> conversions,
-            BigDecimal quantity, String unit) {
+    public static BigDecimal toBase(
+            Product product, List<UnitConversion> conversions, BigDecimal quantity, String unit) {
         if (quantity == null) {
             throw invalid("quantity", "la cantidad es obligatoria");
         }
@@ -61,10 +60,11 @@ public final class Quantities {
      *
      * @throws ApiException {@link ErrorCode#UNIT_INCOMPATIBLE} si la unidad no pertenece al producto
      */
-    public static BigDecimal factorToBase(Product product, List<UnitConversion> conversions,
-            String unit) {
+    public static BigDecimal factorToBase(Product product, List<UnitConversion> conversions, String unit) {
         String normalized = unit == null ? "" : unit.trim().toLowerCase(Locale.ROOT);
-        if (BaseUnit.fromLabel(normalized).filter(base -> base == product.baseUnit()).isPresent()) {
+        if (BaseUnit.fromLabel(normalized)
+                .filter(base -> base == product.baseUnit())
+                .isPresent()) {
             return BigDecimal.ONE;
         }
         return conversions.stream()
@@ -93,13 +93,16 @@ public final class Quantities {
     }
 
     private static ApiException incompatible(Product product, String unit) {
-        return new ApiException(ErrorCode.UNIT_INCOMPATIBLE,
-                "La unidad '" + unit + "' no es compatible con el producto '" + product.name()
-                        + "' (unidad base: " + product.baseUnit().label() + ").");
+        return new ApiException(
+                ErrorCode.UNIT_INCOMPATIBLE,
+                "La unidad '" + unit + "' no es compatible con el producto '" + product.name() + "' (unidad base: "
+                        + product.baseUnit().label() + ").");
     }
 
     static ApiException invalid(String field, String message) {
-        return new ApiException(ErrorCode.VALIDATION_ERROR, "La petición contiene datos no válidos.",
+        return new ApiException(
+                ErrorCode.VALIDATION_ERROR,
+                "La petición contiene datos no válidos.",
                 List.of(new ApiError.FieldViolation(field, message)));
     }
 }

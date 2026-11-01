@@ -9,5 +9,4 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * reciben un administrador con contraseña por defecto.</p>
  */
 @ConfigurationProperties(prefix = "cocina.bootstrap")
-public record BootstrapProperties(String adminUsername, String adminPassword) {
-}
+public record BootstrapProperties(String adminUsername, String adminPassword) {}

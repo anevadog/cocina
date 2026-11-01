@@ -17,8 +17,7 @@ public class CategoryEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "product_categories_seq")
-    @SequenceGenerator(name = "product_categories_seq", sequenceName = "product_categories_seq",
-            allocationSize = 1)
+    @SequenceGenerator(name = "product_categories_seq", sequenceName = "product_categories_seq", allocationSize = 1)
     private Long id;
 
     @Column(name = "establishment_id", nullable = false)
@@ -33,8 +32,7 @@ public class CategoryEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected CategoryEntity() {
-    }
+    protected CategoryEntity() {}
 
     private CategoryEntity(Category category) {
         apply(category);

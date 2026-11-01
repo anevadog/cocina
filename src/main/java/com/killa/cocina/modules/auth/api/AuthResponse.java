@@ -8,11 +8,15 @@ import java.time.Instant;
  *
  * @param tokenType siempre {@code Bearer}; se envía en {@code Authorization}
  */
-public record AuthResponse(String accessToken, String tokenType, Instant expiresAt,
-        String refreshToken, Instant refreshExpiresAt) {
+public record AuthResponse(
+        String accessToken, String tokenType, Instant expiresAt, String refreshToken, Instant refreshExpiresAt) {
 
     public static AuthResponse from(AuthSession session) {
-        return new AuthResponse(session.accessToken(), "Bearer", session.accessExpiresAt(),
-                session.refreshToken(), session.refreshExpiresAt());
+        return new AuthResponse(
+                session.accessToken(),
+                "Bearer",
+                session.accessExpiresAt(),
+                session.refreshToken(),
+                session.refreshExpiresAt());
     }
 }

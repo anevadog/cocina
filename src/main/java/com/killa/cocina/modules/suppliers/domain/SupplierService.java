@@ -7,8 +7,7 @@ public interface SupplierService {
 
     SupplierView create(long establishmentId, Long actorId, SupplierRegistration registration);
 
-    SupplierView update(long establishmentId, Long actorId, long supplierId,
-            SupplierModification modification);
+    SupplierView update(long establishmentId, Long actorId, long supplierId, SupplierModification modification);
 
     SupplierView find(long establishmentId, long supplierId);
 

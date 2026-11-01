@@ -84,7 +84,6 @@ class AppUserLockoutTest {
     }
 
     private static AppUser user() {
-        return new AppUser(1L, 1L, "chef", "Chef de cocina", "hash-argon2", Role.COOK, true, 0, null,
-                NOW, NOW);
+        return new AppUser(1L, 1L, "chef", "Chef de cocina", "hash-argon2", Role.COOK, true, 0, null, NOW, NOW);
     }
 }

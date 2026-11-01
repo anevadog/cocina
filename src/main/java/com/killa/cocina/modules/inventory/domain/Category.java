@@ -3,8 +3,7 @@ package com.killa.cocina.modules.inventory.domain;
 import java.time.Instant;
 
 /** Categoría de producto (INV-01). El nombre es único por establecimiento. */
-public record Category(Long id, long establishmentId, String name, Instant createdAt,
-        Instant updatedAt) {
+public record Category(Long id, long establishmentId, String name, Instant createdAt, Instant updatedAt) {
 
     /** Nombre máximo admitido, alineado con {@code varchar(80)}. */
     private static final int MAX_NAME_LENGTH = 80;

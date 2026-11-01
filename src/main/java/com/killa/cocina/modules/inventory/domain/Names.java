@@ -8,8 +8,7 @@ import java.util.List;
 /** Reglas comunes de nombres del catálogo. */
 final class Names {
 
-    private Names() {
-    }
+    private Names() {}
 
     /**
      * Normaliza y valida el nombre de una categoría, producto o proveedor.
@@ -34,7 +33,9 @@ final class Names {
     }
 
     private static ApiException invalid(String field, String message) {
-        return new ApiException(ErrorCode.VALIDATION_ERROR, "La petición contiene datos no válidos.",
+        return new ApiException(
+                ErrorCode.VALIDATION_ERROR,
+                "La petición contiene datos no válidos.",
                 List.of(new ApiError.FieldViolation(field, message)));
     }
 }

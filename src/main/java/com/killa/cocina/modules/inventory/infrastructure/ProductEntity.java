@@ -58,8 +58,7 @@ public class ProductEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected ProductEntity() {
-    }
+    protected ProductEntity() {}
 
     private ProductEntity(Product product) {
         apply(product);
@@ -86,8 +85,19 @@ public class ProductEntity {
     }
 
     Product toDomain() {
-        return new Product(id, establishmentId, categoryId, name, baseUnit, minStock, currentStock,
-                currentAvgCost, allowNegative, active, createdAt, updatedAt);
+        return new Product(
+                id,
+                establishmentId,
+                categoryId,
+                name,
+                baseUnit,
+                minStock,
+                currentStock,
+                currentAvgCost,
+                allowNegative,
+                active,
+                createdAt,
+                updatedAt);
     }
 
     Long getId() {

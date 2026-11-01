@@ -11,16 +11,14 @@ import java.math.BigDecimal;
  */
 public final class Valuation {
 
-    private Valuation() {
-    }
+    private Valuation() {}
 
     /**
      * Nuevo PMP tras una entrada de {@code quantityBase} valorada a {@code unitCostBase}.
      *
      * @return coste medio ponderado a cuatro decimales
      */
-    public static BigDecimal averageCost(Product product, BigDecimal quantityBase,
-            BigDecimal unitCostBase) {
+    public static BigDecimal averageCost(Product product, BigDecimal quantityBase, BigDecimal unitCostBase) {
         if (quantityBase == null || quantityBase.signum() <= 0) {
             throw Quantities.invalid("quantity", "la cantidad debe ser mayor que cero");
         }
@@ -32,7 +30,6 @@ public final class Valuation {
         BigDecimal currentValue = currentStock.multiply(product.currentAvgCost());
         BigDecimal incomingValue = quantityBase.multiply(unitCostBase);
         BigDecimal newStock = currentStock.add(quantityBase);
-        return currentValue.add(incomingValue)
-                .divide(newStock, Quantities.COST_SCALE, Quantities.ROUNDING);
+        return currentValue.add(incomingValue).divide(newStock, Quantities.COST_SCALE, Quantities.ROUNDING);
     }
 }

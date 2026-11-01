@@ -16,8 +16,7 @@ import java.util.Set;
  */
 public final class Conversions {
 
-    private Conversions() {
-    }
+    private Conversions() {}
 
     public static List<UnitConversion> validate(List<UnitConversion> conversions, BaseUnit baseUnit) {
         if (conversions == null || conversions.isEmpty()) {
@@ -26,13 +25,14 @@ public final class Conversions {
         Set<String> seen = new HashSet<>();
         for (UnitConversion conversion : conversions) {
             if (BaseUnit.fromLabel(conversion.unit()).isPresent()) {
-                throw invalid("la unidad '" + conversion.unit()
-                        + "' es una unidad base y no se declara como conversión");
+                throw invalid(
+                        "la unidad '" + conversion.unit() + "' es una unidad base y no se declara como conversión");
             }
             BaseUnit.dimensionOf(conversion.unit())
                     .filter(dimension -> dimension != baseUnit)
                     .ifPresent(dimension -> {
-                        throw new ApiException(ErrorCode.UNIT_INCOMPATIBLE,
+                        throw new ApiException(
+                                ErrorCode.UNIT_INCOMPATIBLE,
                                 "La unidad '" + conversion.unit() + "' mide "
                                         + dimension.name() + " y el producto se guarda en "
                                         + baseUnit.label() + ".");
@@ -45,7 +45,9 @@ public final class Conversions {
     }
 
     private static ApiException invalid(String message) {
-        return new ApiException(ErrorCode.VALIDATION_ERROR, "La petición contiene datos no válidos.",
+        return new ApiException(
+                ErrorCode.VALIDATION_ERROR,
+                "La petición contiene datos no válidos.",
                 List.of(new ApiError.FieldViolation("conversions", message)));
     }
 }

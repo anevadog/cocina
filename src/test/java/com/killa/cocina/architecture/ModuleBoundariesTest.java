@@ -32,11 +32,11 @@ class ModuleBoundariesTest {
     @Test
     void elDominioNoDependeDeSpringNiDePersistencia() {
         ArchRule rule = noClasses()
-                .that().resideInAnyPackage("..modules..domain..")
-                .should().dependOnClassesThat().resideInAnyPackage(
-                        "org.springframework..",
-                        "jakarta.persistence..",
-                        "org.hibernate..")
+                .that()
+                .resideInAnyPackage("..modules..domain..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("org.springframework..", "jakarta.persistence..", "org.hibernate..")
                 .allowEmptyShould(true);
         rule.check(classes);
     }
@@ -44,8 +44,11 @@ class ModuleBoundariesTest {
     @Test
     void laCapaApiNoAccedeALaInfraestructura() {
         ArchRule rule = noClasses()
-                .that().resideInAnyPackage("..modules..api..")
-                .should().dependOnClassesThat().resideInAnyPackage("..modules..infrastructure..")
+                .that()
+                .resideInAnyPackage("..modules..api..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("..modules..infrastructure..")
                 .allowEmptyShould(true);
         rule.check(classes);
     }
@@ -53,8 +56,11 @@ class ModuleBoundariesTest {
     @Test
     void elDominioNoAccedeALaInfraestructura() {
         ArchRule rule = noClasses()
-                .that().resideInAnyPackage("..modules..domain..")
-                .should().dependOnClassesThat().resideInAnyPackage("..modules..infrastructure..")
+                .that()
+                .resideInAnyPackage("..modules..domain..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("..modules..infrastructure..")
                 .allowEmptyShould(true);
         rule.check(classes);
     }
@@ -62,8 +68,11 @@ class ModuleBoundariesTest {
     @Test
     void laInfraestructuraNoDependeDeLaCapaApi() {
         ArchRule rule = noClasses()
-                .that().resideInAnyPackage("..modules..infrastructure..")
-                .should().dependOnClassesThat().resideInAnyPackage("..modules..api..")
+                .that()
+                .resideInAnyPackage("..modules..infrastructure..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("..modules..api..")
                 .allowEmptyShould(true);
         rule.check(classes);
     }

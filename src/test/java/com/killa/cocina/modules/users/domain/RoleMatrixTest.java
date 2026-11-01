@@ -18,8 +18,7 @@ class RoleMatrixTest {
     @Test
     @DisplayName("ADMIN tiene todos los permisos, incluidas las dos acciones de usuarios")
     void adminTieneTodosLosPermisos() {
-        assertThat(Role.ADMIN.permissions())
-                .containsExactlyInAnyOrderElementsOf(EnumSet.allOf(Permission.class));
+        assertThat(Role.ADMIN.permissions()).containsExactlyInAnyOrderElementsOf(EnumSet.allOf(Permission.class));
         assertThat(Role.ADMIN.allows(Permission.USERS_READ)).isTrue();
         assertThat(Role.ADMIN.allows(Permission.USERS_WRITE)).isTrue();
     }
@@ -66,7 +65,8 @@ class RoleMatrixTest {
     @Test
     @DisplayName("Solo ADMIN puede escribir usuarios: es la frontera que protege el resto del sistema")
     void soloAdminGestionaUsuarios() {
-        assertThat(EnumSet.allOf(Role.class)).filteredOn(role -> role.allows(Permission.USERS_WRITE))
+        assertThat(EnumSet.allOf(Role.class))
+                .filteredOn(role -> role.allows(Permission.USERS_WRITE))
                 .containsExactly(Role.ADMIN);
     }
 }

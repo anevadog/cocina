@@ -10,5 +10,4 @@ public record UpdateSupplierRequest(
         @Size(max = 200, message = "no puede superar 200 caracteres")
         String contact,
 
-        Boolean active) {
-}
+        Boolean active) {}

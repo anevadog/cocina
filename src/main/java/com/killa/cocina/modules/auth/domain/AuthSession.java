@@ -10,6 +10,4 @@ import java.time.Instant;
  * @param refreshToken refresh token opaco; solo se guarda su hash
  * @param refreshExpiresAt caducidad del refresh token
  */
-public record AuthSession(String accessToken, Instant accessExpiresAt, String refreshToken,
-        Instant refreshExpiresAt) {
-}
+public record AuthSession(String accessToken, Instant accessExpiresAt, String refreshToken, Instant refreshExpiresAt) {}

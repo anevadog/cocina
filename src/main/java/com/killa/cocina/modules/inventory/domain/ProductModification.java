@@ -13,20 +13,23 @@ import java.util.List;
  * <p>La unidad base no se modifica: cambiarla reinterpretaría todo el histórico de stock y del
  * kardex. Para corregirla se crea otro producto y se ajusta el saldo.</p>
  */
-public record ProductModification(String name, Long categoryId, BigDecimal minStock,
-        Boolean allowNegative, Boolean active) {
+public record ProductModification(
+        String name, Long categoryId, BigDecimal minStock, Boolean allowNegative, Boolean active) {
 
     public ProductModification {
         if (name != null) {
             name = Names.normalize(name);
         }
         if (categoryId != null && categoryId <= 0) {
-            throw new ApiException(ErrorCode.VALIDATION_ERROR, "La petición contiene datos no válidos.",
+            throw new ApiException(
+                    ErrorCode.VALIDATION_ERROR,
+                    "La petición contiene datos no válidos.",
                     List.of(new ApiError.FieldViolation("categoryId", "no es válido")));
         }
         if (minStock != null) {
             if (minStock.signum() < 0) {
-                throw new ApiException(ErrorCode.VALIDATION_ERROR,
+                throw new ApiException(
+                        ErrorCode.VALIDATION_ERROR,
                         "La petición contiene datos no válidos.",
                         List.of(new ApiError.FieldViolation("minStock", "no puede ser negativo")));
             }
@@ -35,8 +38,7 @@ public record ProductModification(String name, Long categoryId, BigDecimal minSt
     }
 
     public boolean isEmpty() {
-        return name == null && categoryId == null && minStock == null && allowNegative == null
-                && active == null;
+        return name == null && categoryId == null && minStock == null && allowNegative == null && active == null;
     }
 
     public Product applyTo(Product product, Instant now) {

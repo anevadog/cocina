@@ -11,9 +11,19 @@ import java.time.Instant;
  *
  * <p>Inmutable: cada cambio devuelve una instancia nueva.</p>
  */
-public record Product(Long id, long establishmentId, long categoryId, String name, BaseUnit baseUnit,
-        BigDecimal minStock, BigDecimal currentStock, BigDecimal currentAvgCost, boolean allowNegative,
-        boolean active, Instant createdAt, Instant updatedAt) {
+public record Product(
+        Long id,
+        long establishmentId,
+        long categoryId,
+        String name,
+        BaseUnit baseUnit,
+        BigDecimal minStock,
+        BigDecimal currentStock,
+        BigDecimal currentAvgCost,
+        boolean allowNegative,
+        boolean active,
+        Instant createdAt,
+        Instant updatedAt) {
 
     /** INV-07: un producto activo por debajo de su mínimo está en alerta. */
     public boolean isLowStock() {
@@ -22,9 +32,19 @@ public record Product(Long id, long establishmentId, long categoryId, String nam
 
     /** Aplica el resultado de un movimiento: nuevo saldo y, si procede, nuevo PMP. */
     public Product withStock(BigDecimal stock, BigDecimal avgCost, Instant now) {
-        return new Product(id, establishmentId, categoryId, name, baseUnit, minStock,
-                stock == null ? currentStock : stock, avgCost == null ? currentAvgCost : avgCost,
-                allowNegative, active, createdAt, now);
+        return new Product(
+                id,
+                establishmentId,
+                categoryId,
+                name,
+                baseUnit,
+                minStock,
+                stock == null ? currentStock : stock,
+                avgCost == null ? currentAvgCost : avgCost,
+                allowNegative,
+                active,
+                createdAt,
+                now);
     }
 
     /** La baja es lógica; el stock debe estar a cero para archivarlo (INV-01). */
@@ -32,12 +52,20 @@ public record Product(Long id, long establishmentId, long categoryId, String nam
         return currentStock.signum() == 0;
     }
 
-    public Product update(String name, Long categoryId, BigDecimal minStock, Boolean allowNegative,
-            Boolean active, Instant now) {
-        return new Product(id, establishmentId, categoryId == null ? this.categoryId : categoryId,
-                name == null ? this.name : name, baseUnit,
-                minStock == null ? this.minStock : minStock, currentStock, currentAvgCost,
+    public Product update(
+            String name, Long categoryId, BigDecimal minStock, Boolean allowNegative, Boolean active, Instant now) {
+        return new Product(
+                id,
+                establishmentId,
+                categoryId == null ? this.categoryId : categoryId,
+                name == null ? this.name : name,
+                baseUnit,
+                minStock == null ? this.minStock : minStock,
+                currentStock,
+                currentAvgCost,
                 allowNegative == null ? this.allowNegative : allowNegative,
-                active == null ? this.active : active, createdAt, now);
+                active == null ? this.active : active,
+                createdAt,
+                now);
     }
 }

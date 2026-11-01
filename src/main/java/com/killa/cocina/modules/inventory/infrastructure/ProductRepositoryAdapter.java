@@ -22,16 +22,14 @@ class ProductRepositoryAdapter implements ProductRepository {
 
     private final ProductUnitConversionJpaRepository conversions;
 
-    ProductRepositoryAdapter(ProductJpaRepository products,
-            ProductUnitConversionJpaRepository conversions) {
+    ProductRepositoryAdapter(ProductJpaRepository products, ProductUnitConversionJpaRepository conversions) {
         this.products = products;
         this.conversions = conversions;
     }
 
     @Override
     public Optional<Product> findById(long establishmentId, long productId) {
-        return products.findByIdAndEstablishmentId(productId, establishmentId)
-                .map(ProductEntity::toDomain);
+        return products.findByIdAndEstablishmentId(productId, establishmentId).map(ProductEntity::toDomain);
     }
 
     @Override
@@ -41,8 +39,7 @@ class ProductRepositoryAdapter implements ProductRepository {
 
     @Override
     public boolean existsByNameExcluding(long establishmentId, String name, long excludedProductId) {
-        return products.existsByEstablishmentIdAndNameAndIdNot(establishmentId, name,
-                excludedProductId);
+        return products.existsByEstablishmentIdAndNameAndIdNot(establishmentId, name, excludedProductId);
     }
 
     @Override
@@ -75,7 +72,9 @@ class ProductRepositoryAdapter implements ProductRepository {
 
     @Override
     public List<Product> search(long establishmentId, ProductFilter filter, int page, int size) {
-        return products.findAll(specification(establishmentId, filter),
+        return products
+                .findAll(
+                        specification(establishmentId, filter),
                         PageRequest.of(page, size, Sort.by("name").ascending()))
                 .stream()
                 .map(ProductEntity::toDomain)
@@ -95,19 +94,17 @@ class ProductRepositoryAdapter implements ProductRepository {
     }
 
     @Override
-    public void replaceConversions(long establishmentId, long productId,
-            List<UnitConversion> newConversions, Instant now) {
+    public void replaceConversions(
+            long establishmentId, long productId, List<UnitConversion> newConversions, Instant now) {
         products.deleteConversions(productId);
         if (!newConversions.isEmpty()) {
             conversions.saveAll(newConversions.stream()
-                    .map(conversion -> ProductUnitConversionEntity.from(establishmentId, productId,
-                            conversion, now))
+                    .map(conversion -> ProductUnitConversionEntity.from(establishmentId, productId, conversion, now))
                     .toList());
         }
     }
 
-    private static Specification<ProductEntity> specification(long establishmentId,
-            ProductFilter filter) {
+    private static Specification<ProductEntity> specification(long establishmentId, ProductFilter filter) {
         return (root, query, builder) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(builder.equal(root.get("establishmentId"), establishmentId));

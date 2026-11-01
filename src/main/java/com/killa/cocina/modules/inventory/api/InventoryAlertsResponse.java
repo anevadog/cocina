@@ -8,8 +8,11 @@ import java.util.List;
  *
  * <p>Cada lista se limita a 100 elementos; los totales indican cuántos hay en realidad.</p>
  */
-public record InventoryAlertsResponse(List<LowStockAlertResponse> lowStock, long lowStockTotal,
-        List<ExpiringLotAlertResponse> expiring, long expiringTotal) {
+public record InventoryAlertsResponse(
+        List<LowStockAlertResponse> lowStock,
+        long lowStockTotal,
+        List<ExpiringLotAlertResponse> expiring,
+        long expiringTotal) {
 
     public static InventoryAlertsResponse from(InventoryAlerts alerts) {
         return new InventoryAlertsResponse(

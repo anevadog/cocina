@@ -16,8 +16,7 @@ import org.springframework.stereotype.Component;
 public class CurrentActor {
 
     /** Usuario autenticado y establecimiento al que pertenece. */
-    public record Actor(long userId, long establishmentId) {
-    }
+    public record Actor(long userId, long establishmentId) {}
 
     public Optional<Actor> find() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -25,8 +24,7 @@ public class CurrentActor {
                 && token.getToken().getSubject() != null) {
             Object establishment = token.getToken().getClaim("establishment_id");
             if (establishment instanceof Number number) {
-                return Optional.of(new Actor(Long.parseLong(token.getToken().getSubject()),
-                        number.longValue()));
+                return Optional.of(new Actor(Long.parseLong(token.getToken().getSubject()), number.longValue()));
             }
         }
         return Optional.empty();

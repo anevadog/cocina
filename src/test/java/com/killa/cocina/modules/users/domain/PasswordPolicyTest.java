@@ -45,10 +45,8 @@ class PasswordPolicyTest {
     @Test
     @DisplayName("Se rechazan contraseñas vacías o en blanco y las que superan el máximo")
     void rechazaValoresVaciosYDesmesurados() {
-        assertThatThrownBy(() -> PasswordPolicy.validate(null, "chef"))
-                .isInstanceOf(ApiException.class);
-        assertThatThrownBy(() -> PasswordPolicy.validate("   ", "chef"))
-                .isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> PasswordPolicy.validate(null, "chef")).isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> PasswordPolicy.validate("   ", "chef")).isInstanceOf(ApiException.class);
         assertThatThrownBy(() -> PasswordPolicy.validate("a".repeat(PasswordPolicy.MAX_LENGTH + 1), "chef"))
                 .isInstanceOf(ApiException.class)
                 .extracting(exception -> ((ApiException) exception).code())
@@ -58,10 +56,11 @@ class PasswordPolicyTest {
     @Test
     @DisplayName("El detalle del error señala el campo password, no filtra la contraseña")
     void elDetalleSenalaElCampoPassword() {
-        ApiException exception = (ApiException) org.assertj.core.api.Assertions.catchThrowable(
-                () -> PasswordPolicy.validate("corta", "chef"));
+        ApiException exception = (ApiException)
+                org.assertj.core.api.Assertions.catchThrowable(() -> PasswordPolicy.validate("corta", "chef"));
 
-        assertThat(exception.details()).singleElement()
+        assertThat(exception.details())
+                .singleElement()
                 .satisfies(detail -> assertThat(detail.field()).isEqualTo("password"));
         assertThat(exception.getMessage()).doesNotContain("corta");
     }

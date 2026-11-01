@@ -18,8 +18,10 @@ public class ProductUnitConversionEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "product_unit_conversions_seq")
-    @SequenceGenerator(name = "product_unit_conversions_seq",
-            sequenceName = "product_unit_conversions_seq", allocationSize = 1)
+    @SequenceGenerator(
+            name = "product_unit_conversions_seq",
+            sequenceName = "product_unit_conversions_seq",
+            allocationSize = 1)
     private Long id;
 
     @Column(name = "establishment_id", nullable = false)
@@ -37,11 +39,10 @@ public class ProductUnitConversionEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    protected ProductUnitConversionEntity() {
-    }
+    protected ProductUnitConversionEntity() {}
 
-    static ProductUnitConversionEntity from(long establishmentId, long productId,
-            UnitConversion conversion, Instant now) {
+    static ProductUnitConversionEntity from(
+            long establishmentId, long productId, UnitConversion conversion, Instant now) {
         ProductUnitConversionEntity entity = new ProductUnitConversionEntity();
         entity.establishmentId = establishmentId;
         entity.productId = productId;

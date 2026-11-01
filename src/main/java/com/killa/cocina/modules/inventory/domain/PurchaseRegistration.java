@@ -17,8 +17,13 @@ import java.util.List;
  * @param receivedAt instante de recepción; por defecto ahora y nunca futuro
  * @param expiresAt caducidad opcional; si existe, posterior a la recepción
  */
-public record PurchaseRegistration(long supplierId, BigDecimal quantity, String unit,
-        BigDecimal unitPrice, Instant receivedAt, Instant expiresAt) {
+public record PurchaseRegistration(
+        long supplierId,
+        BigDecimal quantity,
+        String unit,
+        BigDecimal unitPrice,
+        Instant receivedAt,
+        Instant expiresAt) {
 
     public PurchaseRegistration {
         if (supplierId <= 0) {
@@ -40,8 +45,7 @@ public record PurchaseRegistration(long supplierId, BigDecimal quantity, String 
     }
 
     /** Recepción y caducidad ya resueltas y validadas contra el reloj del sistema. */
-    public record Schedule(Instant receivedAt, Instant expiresAt) {
-    }
+    public record Schedule(Instant receivedAt, Instant expiresAt) {}
 
     public Schedule schedule(Instant now) {
         Instant received = receivedAt == null ? now : receivedAt;
@@ -55,7 +59,9 @@ public record PurchaseRegistration(long supplierId, BigDecimal quantity, String 
     }
 
     private static ApiException invalid(String field, String message) {
-        return new ApiException(ErrorCode.VALIDATION_ERROR, "La petición contiene datos no válidos.",
+        return new ApiException(
+                ErrorCode.VALIDATION_ERROR,
+                "La petición contiene datos no válidos.",
                 List.of(new ApiError.FieldViolation(field, message)));
     }
 }

@@ -10,12 +10,10 @@ import com.killa.cocina.shared.pagination.PageResult;
 public interface StockService {
 
     /** Entrada de compra: crea lote, recalcula PMP y escribe el movimiento y la auditoría. */
-    PurchaseResult purchase(long establishmentId, Long actorId, long productId,
-            PurchaseRegistration registration);
+    PurchaseResult purchase(long establishmentId, Long actorId, long productId, PurchaseRegistration registration);
 
     /** Ajuste manual con motivo; puede crear lote (entrada) o consumir lotes FIFO (salida). */
-    StockChangeResult adjust(long establishmentId, Long actorId, long productId,
-            AdjustmentRegistration registration);
+    StockChangeResult adjust(long establishmentId, Long actorId, long productId, AdjustmentRegistration registration);
 
     PageResult<StockMovement> movements(long establishmentId, long productId, int page, int size);
 

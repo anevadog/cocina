@@ -35,6 +35,6 @@ public interface ProductRepository {
     List<UnitConversion> conversions(long productId);
 
     /** Sustituye todas las conversiones del producto; la lista vacía las elimina. */
-    void replaceConversions(long establishmentId, long productId, List<UnitConversion> conversions,
-            java.time.Instant now);
+    void replaceConversions(
+            long establishmentId, long productId, List<UnitConversion> conversions, java.time.Instant now);
 }

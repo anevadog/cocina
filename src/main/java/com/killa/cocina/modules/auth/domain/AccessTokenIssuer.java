@@ -10,6 +10,5 @@ public interface AccessTokenIssuer {
     IssuedAccessToken issue(AppUser user);
 
     /** Token emitido con su instante de caducidad. */
-    record IssuedAccessToken(String token, Instant expiresAt) {
-    }
+    record IssuedAccessToken(String token, Instant expiresAt) {}
 }

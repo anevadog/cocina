@@ -11,17 +11,26 @@ import java.util.List;
  *
  * <p>Valida en el constructor: si el objeto existe, es coherente.</p>
  */
-public record ProductRegistration(String name, long categoryId, BaseUnit baseUnit, BigDecimal minStock,
-        boolean allowNegative, List<UnitConversion> conversions) {
+public record ProductRegistration(
+        String name,
+        long categoryId,
+        BaseUnit baseUnit,
+        BigDecimal minStock,
+        boolean allowNegative,
+        List<UnitConversion> conversions) {
 
     public ProductRegistration {
         name = Names.normalize(name);
         if (categoryId <= 0) {
-            throw new ApiException(ErrorCode.VALIDATION_ERROR, "La petición contiene datos no válidos.",
+            throw new ApiException(
+                    ErrorCode.VALIDATION_ERROR,
+                    "La petición contiene datos no válidos.",
                     List.of(new ApiError.FieldViolation("categoryId", "la categoría es obligatoria")));
         }
         if (baseUnit == null) {
-            throw new ApiException(ErrorCode.VALIDATION_ERROR, "La petición contiene datos no válidos.",
+            throw new ApiException(
+                    ErrorCode.VALIDATION_ERROR,
+                    "La petición contiene datos no válidos.",
                     List.of(new ApiError.FieldViolation("baseUnit", "la unidad base es obligatoria")));
         }
         minStock = normalizeMinStock(minStock);
@@ -33,7 +42,9 @@ public record ProductRegistration(String name, long categoryId, BaseUnit baseUni
             return BigDecimal.ZERO.setScale(Quantities.STOCK_SCALE);
         }
         if (minStock.signum() < 0) {
-            throw new ApiException(ErrorCode.VALIDATION_ERROR, "La petición contiene datos no válidos.",
+            throw new ApiException(
+                    ErrorCode.VALIDATION_ERROR,
+                    "La petición contiene datos no válidos.",
                     List.of(new ApiError.FieldViolation("minStock", "no puede ser negativo")));
         }
         return Quantities.stock(minStock);

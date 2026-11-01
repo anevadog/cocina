@@ -15,12 +15,11 @@ public interface ProductService {
     ProductView create(long establishmentId, Long actorId, ProductRegistration registration);
 
     /** Edición parcial. Archivar exige stock cero. */
-    ProductView update(long establishmentId, Long actorId, long productId,
-            ProductModification modification);
+    ProductView update(long establishmentId, Long actorId, long productId, ProductModification modification);
 
     /** Reemplaza el conjunto completo de conversiones del producto. */
-    ProductView replaceConversions(long establishmentId, Long actorId, long productId,
-            List<UnitConversion> conversions);
+    ProductView replaceConversions(
+            long establishmentId, Long actorId, long productId, List<UnitConversion> conversions);
 
     /** Conversiones vigentes del producto. */
     List<UnitConversion> conversions(long establishmentId, long productId);

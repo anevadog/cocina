@@ -57,8 +57,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void elErrorSiempreIncluyeElRequestIdDeLaPeticion() throws Exception {
-        mockMvc.perform(get("/api/v1/probe/boom")
-                        .header(RequestIdFilter.HEADER_NAME, "prueba-123456"))
+        mockMvc.perform(get("/api/v1/probe/boom").header(RequestIdFilter.HEADER_NAME, "prueba-123456"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.requestId").value("prueba-123456"));
     }
@@ -97,8 +96,8 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
     }
 
-    record ProbeRequest(@NotBlank(message = "es obligatorio") String nombre) {
-    }
+    record ProbeRequest(
+            @NotBlank(message = "es obligatorio") String nombre) {}
 
     @RestController
     @RequestMapping("/api/v1/probe")

@@ -15,11 +15,7 @@ public class OpenApiConfig {
 
     @Bean
     public OpenAPI cocinaOpenApi() {
-        return new OpenAPI()
-                .info(new Info()
-                        .title("Cocina API")
-                        .version("v1")
-                        .description("""
+        return new OpenAPI().info(new Info().title("Cocina API").version("v1").description("""
                                 API REST para la gestión interna de la cocina: inventario, recetas,
                                 producción, permisos y trazabilidad.
 

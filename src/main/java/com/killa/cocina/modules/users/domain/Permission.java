@@ -8,7 +8,6 @@ package com.killa.cocina.modules.users.domain;
  * documenta en {@code docs/arquitectura.md}.</p>
  */
 public enum Permission {
-
     USERS_READ("users:read"),
     USERS_WRITE("users:write"),
 

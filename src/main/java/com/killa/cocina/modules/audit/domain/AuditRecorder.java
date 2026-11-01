@@ -16,6 +16,12 @@ public interface AuditRecorder {
      * @param beforeJson estado anterior en JSON, o {@code null} si no aplica
      * @param afterJson estado posterior en JSON, o {@code null} si no aplica
      */
-    void record(long establishmentId, Long actorId, AuditAction action, String entityType,
-            Long entityId, String beforeJson, String afterJson);
+    void record(
+            long establishmentId,
+            Long actorId,
+            AuditAction action,
+            String entityType,
+            Long entityId,
+            String beforeJson,
+            String afterJson);
 }

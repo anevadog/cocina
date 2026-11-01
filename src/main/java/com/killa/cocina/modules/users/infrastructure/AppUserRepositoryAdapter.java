@@ -20,13 +20,13 @@ class AppUserRepositoryAdapter implements UserRepository {
 
     @Override
     public Optional<AppUser> findById(long establishmentId, long userId) {
-        return repository.findByIdAndEstablishmentId(userId, establishmentId)
-                .map(AppUserEntity::toDomain);
+        return repository.findByIdAndEstablishmentId(userId, establishmentId).map(AppUserEntity::toDomain);
     }
 
     @Override
     public Optional<AppUser> findByUsername(long establishmentId, String username) {
-        return repository.findByEstablishmentIdAndUsername(establishmentId, username)
+        return repository
+                .findByEstablishmentIdAndUsername(establishmentId, username)
                 .map(AppUserEntity::toDomain);
     }
 
@@ -39,8 +39,7 @@ class AppUserRepositoryAdapter implements UserRepository {
     public AppUser save(AppUser user) {
         AppUserEntity entity = user.id() == null
                 ? AppUserEntity.from(user)
-                : repository.findById(user.id())
-                        .orElseGet(() -> AppUserEntity.from(user));
+                : repository.findById(user.id()).orElseGet(() -> AppUserEntity.from(user));
         if (user.id() != null) {
             entity.apply(user);
         }
@@ -49,8 +48,9 @@ class AppUserRepositoryAdapter implements UserRepository {
 
     @Override
     public List<AppUser> findAll(long establishmentId, int page, int size) {
-        return repository.findByEstablishmentIdOrderByUsernameAsc(establishmentId,
-                        PageRequest.of(Math.max(page, 0), Math.max(size, 1)))
+        return repository
+                .findByEstablishmentIdOrderByUsernameAsc(
+                        establishmentId, PageRequest.of(Math.max(page, 0), Math.max(size, 1)))
                 .stream()
                 .map(AppUserEntity::toDomain)
                 .toList();

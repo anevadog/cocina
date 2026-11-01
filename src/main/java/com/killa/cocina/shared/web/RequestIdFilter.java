@@ -35,8 +35,8 @@ public class RequestIdFilter extends OncePerRequestFilter {
     private static final Pattern ACCEPTED_FORMAT = Pattern.compile("[A-Za-z0-9._-]{8,64}");
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
         String requestId = resolve(request.getHeader(HEADER_NAME));
         request.setAttribute(ATTRIBUTE_NAME, requestId);
         response.setHeader(HEADER_NAME, requestId);

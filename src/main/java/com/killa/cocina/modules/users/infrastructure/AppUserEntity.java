@@ -54,8 +54,7 @@ public class AppUserEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected AppUserEntity() {
-    }
+    protected AppUserEntity() {}
 
     private AppUserEntity(AppUser user) {
         apply(user);
@@ -81,8 +80,18 @@ public class AppUserEntity {
     }
 
     AppUser toDomain() {
-        return new AppUser(id, establishmentId, username, fullName, passwordHash, role, active,
-                failedAttempts, lockedUntil, createdAt, updatedAt);
+        return new AppUser(
+                id,
+                establishmentId,
+                username,
+                fullName,
+                passwordHash,
+                role,
+                active,
+                failedAttempts,
+                lockedUntil,
+                createdAt,
+                updatedAt);
     }
 
     Long getId() {

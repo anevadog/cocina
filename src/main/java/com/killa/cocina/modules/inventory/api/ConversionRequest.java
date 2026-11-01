@@ -17,8 +17,7 @@ import java.math.BigDecimal;
 public record ConversionRequest(
         @NotBlank(message = "es obligatorio")
         @Size(max = 20, message = "no puede superar 20 caracteres")
-        @Pattern(regexp = "[A-Za-z0-9.]{1,20}",
-                message = "solo admite letras, dígitos o punto")
+        @Pattern(regexp = "[A-Za-z0-9.]{1,20}", message = "solo admite letras, dígitos o punto")
         String unit,
 
         @NotNull(message = "es obligatorio")

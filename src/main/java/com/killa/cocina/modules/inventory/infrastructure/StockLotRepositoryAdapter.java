@@ -33,8 +33,7 @@ class StockLotRepositoryAdapter implements StockLotRepository {
 
     @Override
     public Optional<StockLot> findById(long establishmentId, long lotId) {
-        return lots.findByIdAndEstablishmentId(lotId, establishmentId)
-                .map(StockLotEntity::toDomain);
+        return lots.findByIdAndEstablishmentId(lotId, establishmentId).map(StockLotEntity::toDomain);
     }
 
     @Override
@@ -46,8 +45,9 @@ class StockLotRepositoryAdapter implements StockLotRepository {
 
     @Override
     public List<StockLot> findByProduct(long establishmentId, long productId, int page, int size) {
-        return lots.findByEstablishmentIdAndProductIdOrderByReceivedAtDescIdDesc(establishmentId,
-                        productId, PageRequest.of(page, size))
+        return lots
+                .findByEstablishmentIdAndProductIdOrderByReceivedAtDescIdDesc(
+                        establishmentId, productId, PageRequest.of(page, size))
                 .stream()
                 .map(StockLotEntity::toDomain)
                 .toList();

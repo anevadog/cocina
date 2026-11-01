@@ -8,8 +8,8 @@ import java.util.List;
  * <p>Las dos listas se limitan para que la respuesta sea acotada; {@code *Total} indica cuántos
  * elementos hay de verdad.</p>
  */
-public record InventoryAlerts(List<LowStockAlert> lowStock, long lowStockTotal,
-        List<ExpiringLotAlert> expiring, long expiringTotal) {
+public record InventoryAlerts(
+        List<LowStockAlert> lowStock, long lowStockTotal, List<ExpiringLotAlert> expiring, long expiringTotal) {
 
     public InventoryAlerts {
         lowStock = lowStock == null ? List.of() : List.copyOf(lowStock);

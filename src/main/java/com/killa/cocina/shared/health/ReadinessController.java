@@ -25,12 +25,13 @@ public class ReadinessController {
     @GetMapping("/ready")
     public ResponseEntity<ReadinessResponse> ready() {
         List<ReadinessResponse.Check> checks = indicators.stream()
-                .map(indicator -> new ReadinessResponse.Check(indicator.name(), indicator.status().name()))
+                .map(indicator -> new ReadinessResponse.Check(
+                        indicator.name(), indicator.status().name()))
                 .sorted(Comparator.comparing(ReadinessResponse.Check::name))
                 .toList();
-        boolean ready = checks.stream().noneMatch(check -> ReadinessStatus.DOWN.name().equals(check.status()));
+        boolean ready =
+                checks.stream().noneMatch(check -> ReadinessStatus.DOWN.name().equals(check.status()));
         HttpStatus status = ready ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE;
-        return ResponseEntity.status(status)
-                .body(new ReadinessResponse(ready ? "READY" : "NOT_READY", checks));
+        return ResponseEntity.status(status).body(new ReadinessResponse(ready ? "READY" : "NOT_READY", checks));
     }
 }

@@ -45,10 +45,12 @@ public class ProductCategoryController {
     @PreAuthorize("hasAuthority('inventory:read')")
     public PageResponse<CategoryResponse> list(
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "no puede ser negativo") int page,
-            @RequestParam(defaultValue = "20") @Min(value = 1, message = "debe ser al menos 1") @Max(value = 100, message = "no puede superar 100") int size) {
+            @RequestParam(defaultValue = "20")
+                    @Min(value = 1, message = "debe ser al menos 1")
+                    @Max(value = 100, message = "no puede superar 100")
+                    int size) {
         CurrentActor.Actor actor = requireActor();
-        return PageResponse.from(categoryService.list(actor.establishmentId(), page, size),
-                CategoryResponse::from);
+        return PageResponse.from(categoryService.list(actor.establishmentId(), page, size), CategoryResponse::from);
     }
 
     @PostMapping
@@ -56,8 +58,7 @@ public class ProductCategoryController {
     @PreAuthorize("hasAuthority('inventory:write')")
     public CategoryResponse create(@Valid @RequestBody CreateCategoryRequest request) {
         CurrentActor.Actor actor = requireActor();
-        CategoryView created = categoryService.create(actor.establishmentId(), actor.userId(),
-                request.name());
+        CategoryView created = categoryService.create(actor.establishmentId(), actor.userId(), request.name());
         return CategoryResponse.from(created);
     }
 
@@ -70,15 +71,16 @@ public class ProductCategoryController {
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('inventory:write')")
-    public CategoryResponse rename(@PathVariable long id,
-            @Valid @RequestBody UpdateCategoryRequest request) {
+    public CategoryResponse rename(@PathVariable long id, @Valid @RequestBody UpdateCategoryRequest request) {
         CurrentActor.Actor actor = requireActor();
-        return CategoryResponse.from(categoryService.rename(actor.establishmentId(), actor.userId(),
-                id, request.name()));
+        return CategoryResponse.from(
+                categoryService.rename(actor.establishmentId(), actor.userId(), id, request.name()));
     }
 
     private CurrentActor.Actor requireActor() {
-        return currentActor.find().orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED,
-                "Necesitas autenticarte para acceder a este recurso."));
+        return currentActor
+                .find()
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.UNAUTHORIZED, "Necesitas autenticarte para acceder a este recurso."));
     }
 }

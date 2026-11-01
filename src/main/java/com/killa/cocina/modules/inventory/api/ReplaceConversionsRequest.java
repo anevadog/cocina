@@ -10,6 +10,4 @@ import java.util.List;
  * <p>Enviar una lista vacía elimina todas las conversiones; la unidad base nunca se declara.</p>
  */
 public record ReplaceConversionsRequest(
-        @NotNull(message = "es obligatorio")
-        List<@Valid ConversionRequest> conversions) {
-}
+        @NotNull(message = "es obligatorio") List<@Valid ConversionRequest> conversions) {}

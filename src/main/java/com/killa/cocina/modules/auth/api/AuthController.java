@@ -31,8 +31,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
-        return AuthResponse.from(authService.login(establishment.id(), request.username(),
-                request.password()));
+        return AuthResponse.from(authService.login(establishment.id(), request.username(), request.password()));
     }
 
     @PostMapping("/refresh")

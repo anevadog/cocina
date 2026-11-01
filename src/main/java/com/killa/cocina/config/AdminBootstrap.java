@@ -46,8 +46,11 @@ public class AdminBootstrap implements ApplicationRunner {
 
     private final BootstrapProperties bootstrap;
 
-    public AdminBootstrap(JdbcTemplate jdbcTemplate, UserService userService,
-            EstablishmentProperties establishment, BootstrapProperties bootstrap) {
+    public AdminBootstrap(
+            JdbcTemplate jdbcTemplate,
+            UserService userService,
+            EstablishmentProperties establishment,
+            BootstrapProperties bootstrap) {
         this.jdbcTemplate = jdbcTemplate;
         this.userService = userService;
         this.establishment = establishment;
@@ -61,8 +64,12 @@ public class AdminBootstrap implements ApplicationRunner {
     }
 
     private void ensureEstablishment() {
-        jdbcTemplate.update(ENSURE_ESTABLISHMENT, establishment.id(), establishment.name(),
-                establishment.timezone(), establishment.currency());
+        jdbcTemplate.update(
+                ENSURE_ESTABLISHMENT,
+                establishment.id(),
+                establishment.name(),
+                establishment.timezone(),
+                establishment.currency());
         // Si la fila se insertó con id explícito, la secuencia debe quedar por delante para que
         // una inserción posterior sin id no choque con la clave primaria.
         jdbcTemplate.queryForObject(SYNC_ESTABLISHMENT_SEQUENCE, Long.class);
@@ -76,12 +83,17 @@ public class AdminBootstrap implements ApplicationRunner {
         if (userService.list(establishment.id(), 0, 1).total() > 0) {
             return;
         }
-        String username = bootstrap.adminUsername() == null || bootstrap.adminUsername().isBlank()
-                ? "admin"
-                : bootstrap.adminUsername();
-        userService.create(establishment.id(), null,
+        String username =
+                bootstrap.adminUsername() == null || bootstrap.adminUsername().isBlank()
+                        ? "admin"
+                        : bootstrap.adminUsername();
+        userService.create(
+                establishment.id(),
+                null,
                 new UserRegistration(username, "Administrador inicial", password, Role.ADMIN));
-        log.info("Creado el administrador inicial '{}' del establecimiento {}",
-                username.toLowerCase(java.util.Locale.ROOT), establishment.id());
+        log.info(
+                "Creado el administrador inicial '{}' del establecimiento {}",
+                username.toLowerCase(java.util.Locale.ROOT),
+                establishment.id());
     }
 }

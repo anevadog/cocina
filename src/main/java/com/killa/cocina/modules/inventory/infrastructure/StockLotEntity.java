@@ -48,8 +48,7 @@ public class StockLotEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    protected StockLotEntity() {
-    }
+    protected StockLotEntity() {}
 
     private StockLotEntity(StockLot lot) {
         apply(lot);
@@ -73,7 +72,16 @@ public class StockLotEntity {
     }
 
     StockLot toDomain() {
-        return new StockLot(id, establishmentId, productId, supplierId, receivedAt, expiresAt,
-                unitCost, initialQty, remainingQty, createdAt);
+        return new StockLot(
+                id,
+                establishmentId,
+                productId,
+                supplierId,
+                receivedAt,
+                expiresAt,
+                unitCost,
+                initialQty,
+                remainingQty,
+                createdAt);
     }
 }

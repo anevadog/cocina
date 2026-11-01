@@ -17,10 +17,10 @@ public record UserModification(String fullName, Role role, Boolean active) {
         if (fullName != null) {
             fullName = fullName.trim();
             if (fullName.isEmpty() || fullName.length() > 120) {
-                throw new ApiException(ErrorCode.VALIDATION_ERROR,
+                throw new ApiException(
+                        ErrorCode.VALIDATION_ERROR,
                         "La petición contiene datos no válidos.",
-                        List.of(new ApiError.FieldViolation("fullName",
-                                "debe tener entre 1 y 120 caracteres")));
+                        List.of(new ApiError.FieldViolation("fullName", "debe tener entre 1 y 120 caracteres")));
             }
         }
     }

@@ -45,50 +45,65 @@ public class StockController {
     @PostMapping("/{productId}/purchases")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('inventory:write')")
-    public PurchaseResponse purchase(@PathVariable long productId,
-            @Valid @RequestBody PurchaseRequest request) {
+    public PurchaseResponse purchase(@PathVariable long productId, @Valid @RequestBody PurchaseRequest request) {
         CurrentActor.Actor actor = requireActor();
-        return PurchaseResponse.from(stockService.purchase(actor.establishmentId(),
-                actor.userId(), productId,
-                new PurchaseRegistration(request.supplierId(), request.quantity(), request.unit(),
-                        request.unitPrice(), request.receivedAt(), request.expiresAt())));
+        return PurchaseResponse.from(stockService.purchase(
+                actor.establishmentId(),
+                actor.userId(),
+                productId,
+                new PurchaseRegistration(
+                        request.supplierId(),
+                        request.quantity(),
+                        request.unit(),
+                        request.unitPrice(),
+                        request.receivedAt(),
+                        request.expiresAt())));
     }
 
     @PostMapping("/{productId}/adjustments")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('inventory:write')")
-    public AdjustmentResponse adjust(@PathVariable long productId,
-            @Valid @RequestBody AdjustmentRequest request) {
+    public AdjustmentResponse adjust(@PathVariable long productId, @Valid @RequestBody AdjustmentRequest request) {
         CurrentActor.Actor actor = requireActor();
-        return AdjustmentResponse.from(stockService.adjust(actor.establishmentId(),
-                actor.userId(), productId,
-                new AdjustmentRegistration(request.type(), request.quantity(), request.unit(),
-                        request.reason())));
+        return AdjustmentResponse.from(stockService.adjust(
+                actor.establishmentId(),
+                actor.userId(),
+                productId,
+                new AdjustmentRegistration(request.type(), request.quantity(), request.unit(), request.reason())));
     }
 
     @GetMapping("/{productId}/movements")
     @PreAuthorize("hasAuthority('inventory:read')")
-    public PageResponse<StockMovementResponse> movements(@PathVariable long productId,
+    public PageResponse<StockMovementResponse> movements(
+            @PathVariable long productId,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "no puede ser negativo") int page,
-            @RequestParam(defaultValue = "20") @Min(value = 1, message = "debe ser al menos 1") @Max(value = 100, message = "no puede superar 100") int size) {
+            @RequestParam(defaultValue = "20")
+                    @Min(value = 1, message = "debe ser al menos 1")
+                    @Max(value = 100, message = "no puede superar 100")
+                    int size) {
         CurrentActor.Actor actor = requireActor();
         return PageResponse.from(
-                stockService.movements(actor.establishmentId(), productId, page, size),
-                StockMovementResponse::from);
+                stockService.movements(actor.establishmentId(), productId, page, size), StockMovementResponse::from);
     }
 
     @GetMapping("/{productId}/lots")
     @PreAuthorize("hasAuthority('inventory:read')")
-    public PageResponse<StockLotResponse> lots(@PathVariable long productId,
+    public PageResponse<StockLotResponse> lots(
+            @PathVariable long productId,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "no puede ser negativo") int page,
-            @RequestParam(defaultValue = "20") @Min(value = 1, message = "debe ser al menos 1") @Max(value = 100, message = "no puede superar 100") int size) {
+            @RequestParam(defaultValue = "20")
+                    @Min(value = 1, message = "debe ser al menos 1")
+                    @Max(value = 100, message = "no puede superar 100")
+                    int size) {
         CurrentActor.Actor actor = requireActor();
-        return PageResponse.from(stockService.lots(actor.establishmentId(), productId, page, size),
-                StockLotResponse::from);
+        return PageResponse.from(
+                stockService.lots(actor.establishmentId(), productId, page, size), StockLotResponse::from);
     }
 
     private CurrentActor.Actor requireActor() {
-        return currentActor.find().orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED,
-                "Necesitas autenticarte para acceder a este recurso."));
+        return currentActor
+                .find()
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.UNAUTHORIZED, "Necesitas autenticarte para acceder a este recurso."));
     }
 }

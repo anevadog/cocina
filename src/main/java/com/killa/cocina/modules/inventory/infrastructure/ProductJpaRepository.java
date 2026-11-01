@@ -12,8 +12,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 /** Repositorio Spring Data de productos. */
-interface ProductJpaRepository
-        extends JpaRepository<ProductEntity, Long>, JpaSpecificationExecutor<ProductEntity> {
+interface ProductJpaRepository extends JpaRepository<ProductEntity, Long>, JpaSpecificationExecutor<ProductEntity> {
 
     Optional<ProductEntity> findByIdAndEstablishmentId(long id, long establishmentId);
 
@@ -26,8 +25,7 @@ interface ProductJpaRepository
     /** Bloqueo pesimista del producto: serializa los movimientos de stock (ADR-022). */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from ProductEntity p where p.id = :id and p.establishmentId = :establishmentId")
-    Optional<ProductEntity> findForUpdate(@Param("id") long id,
-            @Param("establishmentId") long establishmentId);
+    Optional<ProductEntity> findForUpdate(@Param("id") long id, @Param("establishmentId") long establishmentId);
 
     /** INV-07: productos activos por debajo de su mínimo, ordenados por nombre. */
     @Query("""
@@ -36,8 +34,7 @@ interface ProductJpaRepository
               and p.currentStock < p.minStock
             order by p.name asc
             """)
-    List<ProductEntity> findLowStock(@Param("establishmentId") long establishmentId,
-            Pageable pageable);
+    List<ProductEntity> findLowStock(@Param("establishmentId") long establishmentId, Pageable pageable);
 
     @Query("""
             select count(p) from ProductEntity p

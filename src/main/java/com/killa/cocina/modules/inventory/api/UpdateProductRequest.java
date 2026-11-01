@@ -10,13 +10,11 @@ public record UpdateProductRequest(
         @Size(min = 2, max = 120, message = "debe tener entre 2 y 120 caracteres")
         String name,
 
-        @Positive(message = "debe ser mayor que cero")
-        Long categoryId,
+        @Positive(message = "debe ser mayor que cero") Long categoryId,
 
         @DecimalMin(value = "0", message = "no puede ser negativo")
         BigDecimal minStock,
 
         Boolean allowNegative,
 
-        Boolean active) {
-}
+        Boolean active) {}

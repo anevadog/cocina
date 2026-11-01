@@ -21,8 +21,7 @@ public class AuditLogRecorder implements AuditRecorder {
      * {@code cast(? as jsonb)} debe seguir siendo válido.
      */
     private static final int[] TYPES = {
-            Types.BIGINT, Types.BIGINT, Types.VARCHAR, Types.VARCHAR, Types.BIGINT,
-            Types.VARCHAR, Types.VARCHAR
+        Types.BIGINT, Types.BIGINT, Types.VARCHAR, Types.VARCHAR, Types.BIGINT, Types.VARCHAR, Types.VARCHAR
     };
 
     private final JdbcTemplate jdbcTemplate;
@@ -32,11 +31,17 @@ public class AuditLogRecorder implements AuditRecorder {
     }
 
     @Override
-    public void record(long establishmentId, Long actorId, AuditAction action, String entityType,
-            Long entityId, String beforeJson, String afterJson) {
-        jdbcTemplate.update(INSERT,
-                new Object[] {establishmentId, actorId, action.name(), entityType, entityId,
-                        beforeJson, afterJson},
+    public void record(
+            long establishmentId,
+            Long actorId,
+            AuditAction action,
+            String entityType,
+            Long entityId,
+            String beforeJson,
+            String afterJson) {
+        jdbcTemplate.update(
+                INSERT,
+                new Object[] {establishmentId, actorId, action.name(), entityType, entityId, beforeJson, afterJson},
                 TYPES);
     }
 }
