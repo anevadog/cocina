@@ -49,6 +49,8 @@ Una entrada por decisión con contexto, opciones, decisión y consecuencias. Est
 | ADR-042 | Seed demo por servicios y en una sola transacción | Aceptada |
 | ADR-043 | Copias lógicas con `pg_dump` y restauración en base nueva | Aceptada |
 | ADR-044 | Rendimiento medido con un check opt-in, no en CI | Aceptada |
+| ADR-045 | Despliegue en VPS con Docker Compose y Caddy | Aceptada |
+| ADR-046 | Copia externa con rclone y retención remota | Aceptada |
 
 ---
 
@@ -890,3 +892,50 @@ afirma los p95 del requisito. Los resultados se registran en `docs/rendimiento.m
 **Consecuencias:** la suite normal no se alarga ni depende de la carga de la máquina, pero la medición
 es manual y hay que repetirla al tocar rutas calientes o índices. Es una referencia de regresión, no
 una prueba de resistencia ni un SLA: el rendimiento en producción se valida en P1 con hardware real.
+
+---
+
+## ADR-045 — Despliegue en VPS con Docker Compose y Caddy
+
+**Contexto:** P1 debía decidir dónde vive la API en producción. Las restricciones son un presupuesto
+de 15 €/mes (NFR-COST-01), un solo restaurante, un equipo pequeño, RTO de 4 h y RPO de 24 h
+(NFR-DIS-01/02) y portabilidad por entorno (NFR-POR-01). No hay requisito de alta disponibilidad ni
+de escalado horizontal en el MVP.
+
+**Opciones:** PaaS gestionado con base de datos incluida (A) · VPS pequeño con Docker Compose y proxy
+propio (B) · Kubernetes o contenedores gestionados (C).
+
+**Decisión:** (B). Un VPS con Ubuntu LTS ejecuta `compose.prod.yaml`: PostgreSQL 18, la API y Caddy.
+Caddy termina TLS con Let's Encrypt, aplica cabeceras de seguridad y limita el cuerpo de la petición.
+La base no publica puertos y la API corre sin privilegios, con sistema de ficheros de solo lectura,
+`cap_drop: ALL` y `no-new-privileges`. La documentación OpenAPI se apaga con `API_DOCS_ENABLED=false`.
+El procedimiento, la preparación del host, el coste y la lista de comprobación están en
+`docs/despliegue.md`; la revisión de seguridad y datos, en `docs/seguridad.md`.
+
+**Consecuencias:** el coste queda por debajo de 15 €/mes y el control es total, sin dependencia de la
+API de un proveedor. A cambio hay un único servidor: no hay alta disponibilidad y el RTO depende de
+aprovisionar otro VPS y restaurar la copia. Las actualizaciones son manuales y hay que endurecer y
+monitorizar el host. Se acepta para el MVP; si el producto crece, el siguiente paso es una base
+gestionada con copias automáticas, no Kubernetes.
+
+---
+
+## ADR-046 — Copia externa con rclone y retención remota
+
+**Contexto:** ADR-043 define el volcado local con `pg_dump -Fc`, pero una copia en el mismo VPS no
+protege de perder el servidor, el disco o la cuenta del proveedor. NFR-DIS-02 exige que la copia diaria
+exista y que la restauración esté probada; el RPO es de 24 h.
+
+**Opciones:** instantáneas del proveedor del VPS (A) · `rsync`/`scp` a un segundo servidor (B) ·
+`rclone` a un almacenamiento S3-compatible (C).
+
+**Decisión:** (C). `scripts/backup-offsite.sh` replica los volcados y sus sumas con `rclone copy` a
+`$RCLONE_REMOTE/<hostname>/` y aplica la misma retención de 30 días en remoto. El bucket es privado,
+con cifrado en reposo y credenciales limitadas a ese prefijo. La copia local sigue siendo
+`scripts/backup.sh`; el `cron` ejecuta ambas. La restauración se sigue probando con `scripts/restore.sh`
+en una base nueva (`docs/backups.md`).
+
+**Consecuencias:** la copia sale del VPS por una herramienta de un solo binario, sin montar otro
+servidor. Requiere instalar y configurar rclone en el host y proteger sus credenciales; el borrado por
+retención remota debe vigilarse para no quedarse sin copias si falla la subida. No añade PITR: el RPO
+sigue siendo de 24 h.

@@ -4,13 +4,14 @@ API REST para estandarizar y controlar la operación de la cocina de un restaura
 lotes y caducidades, recetas técnicas versionadas con coste real, producción diaria con descuento
 automático de stock, trazabilidad y permisos por puesto.
 
-**Estado:** F7 en curso (bloques A y B cerrados). La API arranca, aplica migraciones V1–V7 en PostgreSQL 18,
+**Estado:** F7 cerrada (bloques A, B y C). La API arranca, aplica migraciones V1–V7 en PostgreSQL 18,
 expone `/health`, `/ready` y OpenAPI, e incluye autenticación JWT con refresh rotatorio, RBAC por rol,
 auditoría append-only protegida por trigger, inventario con lotes y PMP, recetas versionadas con coste,
 producción con descuento atómico, temperaturas con alertas, mermas, incidencias, trazabilidad
 lote → preparación, informes de costes y caducidades, seed de datos demo, copias de seguridad con
-restauración probada y una medición de rendimiento repetible. **245 tests** en verde más una
-comprobación de rendimiento opt-in. Ver `docs/memoria.md`.
+restauración probada, una medición de rendimiento repetible y una pila de producción con
+`compose.prod.yaml` y Caddy. **245 tests** en verde más una comprobación de rendimiento opt-in. Queda
+P2 (base legal y retención) antes de datos reales de empleados. Ver `docs/memoria.md`.
 
 ## Documentación
 
@@ -24,6 +25,8 @@ comprobación de rendimiento opt-in. Ver `docs/memoria.md`.
 | `docs/memoria.md` | Estado actual y punto de continuación |
 | `docs/backups.md` | Copias de seguridad, restauración y prueba registrada |
 | `docs/rendimiento.md` | Método y resultados de NFR-REN-01/02 |
+| `docs/despliegue.md` | VPS, TLS, primer despliegue, actualización, backups y operación |
+| `docs/seguridad.md` | Endurecimiento, gestión de secretos y datos personales |
 
 ## Requisitos del entorno
 
@@ -102,6 +105,26 @@ catálogo, recetas publicadas, un plan de producción, temperaturas, una merma y
   (`COCINA_DEMO_PASSWORD` en el entorno) y nunca se escribe en el log.
 - El seed es idempotente: si ya hay productos, no hace nada. No se ejecuta sin el perfil `demo`.
 
+## Despliegue en producción
+
+La pila de producción es un VPS con `compose.prod.yaml`: PostgreSQL, la API y **Caddy** como proxy con
+TLS automático. La base de datos no publica puertos y la API corre sin privilegios y con el sistema de
+ficheros de solo lectura. Decisión y consecuencias en ADR-045; procedimiento completo en
+`docs/despliegue.md`.
+
+```bash
+cp .env.production.example .env    # completar dominio, correo y secretos; chmod 600
+docker compose -f compose.prod.yaml up -d --build
+docker compose -f compose.prod.yaml ps
+curl -fsS https://<dominio>/ready
+```
+
+- La documentación OpenAPI/Swagger está apagada en producción (`API_DOCS_ENABLED=false`).
+- La copia diaria se programa con `cron` y se replica fuera del VPS con
+  `scripts/backup-offsite.sh` (rclone). Ver `docs/despliegue.md` §8 y `docs/backups.md`.
+- Antes de datos reales de empleados hay que cerrar **P2** (base legal y retención); ver
+  `docs/seguridad.md`.
+
 ## Comandos habituales
 
 ```bash
@@ -113,6 +136,7 @@ catálogo, recetas publicadas, un plan de producción, temperaturas, una merma y
 ./mvnw -Dtest=PerformanceBaselineCheck -Dcocina.performance=true test   # medición de rendimiento
 sh scripts/backup.sh     # copia lógica en backups/ (Git Bash o WSL)
 sh scripts/restore.sh backups/<archivo>.dump cocina_restore             # restaurar en base nueva
+sh scripts/check-secrets.sh                                             # NFR-SEG-04 (también en CI)
 docker compose ps        # estado de los contenedores
 docker compose logs -f db
 docker compose down      # parar PostgreSQL (añade -v para borrar los datos)
@@ -129,10 +153,10 @@ El informe de cobertura queda en `target/site/jacoco/index.html`; `verify` no im
 ```text
 cocina/
 ├─ AGENTS.md  CLAUDE.md  README.md
-├─ docs/                        # requisitos, arquitectura, decisiones, plan, memoria, backups y rendimiento
-├─ scripts/                     # backup.sh y restore.sh (NFR-DIS-02)
+├─ docs/                        # requisitos, arquitectura, decisiones, plan, memoria, backups, rendimiento, despliegue y seguridad
+├─ scripts/                     # backup.sh, restore.sh, backup-offsite.sh y check-secrets.sh
 ├─ .mvn/wrapper/                # configuración del Maven Wrapper (Maven 3.9.16)
-├─ .github/workflows/ci.yml     # ./mvnw verify en GitHub Actions
+├─ .github/workflows/ci.yml     # check-secrets + ./mvnw verify en GitHub Actions
 ├─ mvnw  mvnw.cmd  pom.xml
 ├─ src/main/java/com/killa/cocina/
 │  ├─ CocinaApplication.java
@@ -146,7 +170,7 @@ cocina/
 │  │  └─ web/                   # requestId (NFR-OBS-01)
 │  └─ modules/                  # auth, users, audit, inventory, suppliers, recipes, production, quality, reporting
 ├─ src/main/resources/
-│  ├─ application.yml  application-local.yml  application-test.yml
+│  ├─ application.yml  application-local.yml  application-test.yml  application-prod.yml
 │  └─ db/migration/
 │     ├─ V1__baseline.sql             # establishments
 │     ├─ V2__users_auth_audit.sql     # app_users, refresh_tokens, audit_logs
@@ -161,12 +185,16 @@ cocina/
 │  ├─ modules/                  # dominio puro e integración de auth, users e inventory
 │  └─ support/                  # contenedor PostgreSQL compartido (Testcontainers)
 ├─ compose.yaml                 # PostgreSQL 18 para desarrollo (host: 5433)
-└─ Dockerfile                   # imagen multi-stage, usuario no root, healthcheck
+├─ compose.prod.yaml            # pila de producción: PostgreSQL, API y Caddy
+├─ Caddyfile                    # TLS automático y cabeceras de seguridad
+├─ Dockerfile                   # imagen multi-stage, usuario no root, healthcheck
+└─ .env.example  .env.production.example   # plantillas; el .env real nunca se commitea
 ```
 
 ## Variables de entorno
 
-Ver `.env.example`. Nunca se commitea `.env` ni secretos reales.
+Ver `.env.example` para desarrollo y `.env.production.example` para producción. Nunca se commitea
+`.env` ni secretos reales; `scripts/check-secrets.sh` lo comprueba en CI.
 
 ## Convenciones
 

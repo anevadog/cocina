@@ -137,7 +137,7 @@ actualiza aquí y en `docs/plan.md`.
 | NFR-POR-01 | Portabilidad | Imagen Docker sobre JRE 25; configuración solo por entorno |
 | NFR-USO-01 | Operaciones cortas | Registrar producción ≤ 3 pasos desde el futuro cliente |
 | NFR-ESC-01 | Preparado para multi-establecimiento | `establishment_id` desde la primera migración; segundo establecimiento sin migración destructiva |
-| NFR-DAT-01 | Protección de datos | Minimización y retención definida. PENDIENTE: base legal RGPD/LOPDGDD |
+| NFR-DAT-01 | Protección de datos | Minimización aplicada e inventario documentado en `docs/seguridad.md`; retención propuesta. PENDIENTE P2: base legal RGPD/LOPDGDD y plazos definitivos |
 | NFR-COST-01 | Coste | 0 € en desarrollo; ≤ 15 €/mes en producción |
 | NFR-I18N-01 | Idioma | API y documentación en español; código, tablas y commits en inglés; UTF-8 |
 

@@ -16,7 +16,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
 | F4 | Recetas, versiones y costes | [x] | ~2 semanas |
 | F5 | Producción y descuento automático | [x] | ~1,5 semanas |
 | F6 | Calidad y trazabilidad | [x] | ~1,5 semanas |
-| F7 | Informes, endurecimiento y despliegue | [~] En curso (bloque B cerrado) | ~2 semanas |
+| F7 | Informes, endurecimiento y despliegue | [x] Cerrada (bloques A, B y C) | ~2 semanas |
 
 Total orientativo MVP: **13–16 semanas** a tiempo parcial, una persona. Son estimaciones, no
 compromisos.
@@ -188,11 +188,21 @@ remoto Git; se comprobará al publicar el repositorio.
 - [x] Seed de datos demo (PLA-05): `DemoDataSeeder` con perfil `demo`, ordenado tras `AdminBootstrap`,
       en una sola transacción e idempotente (ADR-042)
 
-**Bloque C — endurecimiento y despliegue**
+**Bloque C — endurecimiento y despliegue (hecho y verificado)**
 
-- [ ] Imagen Docker de producción y despliegue (PENDIENTE P1)
-- [ ] Revisión de seguridad y de datos personales (NFR-DAT-01)
-- [ ] Cierre documental de F7
+- [x] Imagen Docker de producción revisada (`Dockerfile`, `.dockerignore`, perfil `prod`) y pila
+      `compose.prod.yaml` con PostgreSQL, API y Caddy (ADR-045)
+- [x] Proxy con TLS automático y cabeceras de seguridad (`Caddyfile`), API sin root y de solo lectura,
+      base de datos sin puerto publicado y Swagger apagado en producción
+- [x] Despliegue en VPS documentado: preparación del host, DNS/TLS, primer despliegue, actualización,
+      vuelta atrás, operación y coste (`docs/despliegue.md`)
+- [x] Copia externa con rclone y retención remota (ADR-046); `cron` de backup local y externo
+- [x] Revisión de seguridad y de datos personales (NFR-DAT-01): minimización, inventario, retención
+      propuesta y P2 visible (`docs/seguridad.md`)
+- [x] Comprobación de secretos en CI (`scripts/check-secrets.sh`, NFR-SEG-04)
+- [x] Cierre documental de F7: ADR-045/046, P1 resuelta, README, AGENTS.md y memoria
+
+**Fase cerrada.** Queda P2 (base legal y retención definitiva) antes de datos reales de empleados.
 
 ## Fuera de este plan
 

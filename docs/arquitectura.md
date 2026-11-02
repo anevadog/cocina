@@ -503,11 +503,15 @@ por defecto. La decisión y sus alternativas están en ADR-019.
 - Logs JSON con `requestId`, usuario y módulo; sin datos sensibles.
 - `/health` (proceso) y `/ready` (base de datos y migraciones).
 - Backups: `scripts/backup.sh` (volcado `pg_dump -Fc`, SHA-256 y retención de 30 días) y
-  `scripts/restore.sh` (restauración en base nueva con recuentos). Procedimiento y prueba registrada
-  en `docs/backups.md` (ADR-043).
+  `scripts/restore.sh` (restauración en base nueva con recuentos). Copia externa con
+  `scripts/backup-offsite.sh` (rclone). Procedimiento y prueba registrada en `docs/backups.md`
+  (ADR-043, ADR-046).
 - Datos de demostración: perfil `demo` (`DemoDataSeeder`), sobre base vacía y con una sola
   transacción; credenciales `demo.*` con la contraseña de `cocina.demo.password`.
 - Imagen Docker: multi-stage, JRE 25, usuario no root, healthcheck.
+- Producción: `compose.prod.yaml` con PostgreSQL, API y Caddy; la base no publica puertos y la API
+  corre sin privilegios y con el sistema de ficheros de solo lectura. TLS y cabeceras en Caddy.
+  Swagger/OpenAPI apagados con el perfil `prod` (ADR-045, `docs/despliegue.md`).
 
 ## 10. Pendiente
 

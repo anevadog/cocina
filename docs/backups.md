@@ -49,16 +49,27 @@ llegar nunca al repositorio.
 
 ### Producción
 
-El despliegue definitivo está pendiente (P1). Cuando exista, la copia diaria se programa en el
-planificador del host o en el orquestador y debe dejar el fichero fuera del disco de la base de datos.
-Ejemplo con `cron` a las 03:30 UTC, hora valle:
+El despliegue es un VPS con `compose.prod.yaml` (ADR-045). La copia diaria se programa con `cron` en
+el host y se replica fuera del VPS con `scripts/backup-offsite.sh` (ADR-046). Hay que exportar
+`COMPOSE_FILE=compose.prod.yaml`: sin esa variable, `docker compose` usa la pila de desarrollo.
 
 ```cron
-30 3 * * * cd /srv/cocina && sh scripts/backup.sh >> /var/log/cocina-backup.log 2>&1
+# 03:30 UTC, fuera del horario de servicio.
+30 3 * * * cd /srv/cocina && COMPOSE_FILE=compose.prod.yaml RCLONE_REMOTE=s3:cocina-backups sh scripts/backup.sh >> /var/log/cocina-backup.log 2>&1 && COMPOSE_FILE=compose.prod.yaml RCLONE_REMOTE=s3:cocina-backups sh scripts/backup-offsite.sh >> /var/log/cocina-backup.log 2>&1
 ```
 
+La copia externa usa `rclone copy` a `$RCLONE_REMOTE/<hostname>/` y aplica la misma retención de 30
+días en remoto. Requiere `rclone` instalado y un remoto configurado (`rclone config`), con un bucket
+privado, cifrado en reposo y credenciales limitadas a ese prefijo. Procedimiento completo en
+`docs/despliegue.md` §8.
+
 El registro debe vigilarse: una copia que falla en silencio no es una copia. Como mínimo, se revisa el
-tamaño del último volcado y su suma SHA-256.
+tamaño del último volcado, su suma SHA-256 y que la copia externa esté en el bucket:
+
+```bash
+find /srv/cocina/backups -name 'cocina-*.dump' -mtime -1 | wc -l   # debe ser ≥ 1
+RCLONE_REMOTE=s3:cocina-backups rclone lsf "$(hostname)" | tail
+```
 
 ### Desarrollo
 
@@ -145,9 +156,9 @@ curl -s -X POST http://localhost:8080/api/v1/auth/login \
 La base de prueba se elimina después con `drop database cocina_restore with (force)`. El volcado de
 ejemplo no se commitea (está ignorado por Git).
 
-## 6. Pendientes ligados a P1
+## 6. Pendientes
 
-1. Programador y almacenamiento definitivo (host, orquestador o servicio gestionado).
-2. Copia externa y cifrado del directorio de copias.
-3. Alertas si el volcado diario falla o si el tamaño se desvía del habitual.
-4. Decidir si el RPO de 24 h es suficiente o si se añade archivado de WAL (PITR).
+1. Configurar `rclone` y el bucket externo en el VPS; el script existe, pero la copia real depende de
+   las credenciales del operador.
+2. Alertas si el volcado diario falla o si el tamaño se desvía del habitual.
+3. Decidir si el RPO de 24 h es suficiente o si se añade archivado de WAL (PITR).
