@@ -8,6 +8,9 @@
 # Requisitos: Docker en marcha, contenedor del compose y Git Bash/WSL (no PowerShell:
 # la redirección de PowerShell corrompe los binarios).
 #
+# En producción, exportar COMPOSE_FILE=compose.prod.yaml: por defecto `docker compose` usa
+# `compose.yaml`, que es la pila de desarrollo y no tiene el contenedor `cocina-db`.
+#
 # El volcado se hace dentro del contenedor y se copia al host con `docker compose cp`
 # para que el flujo binario nunca dependa de la shell.
 
@@ -18,6 +21,10 @@ set -eu
 MSYS_NO_PATHCONV=1
 MSYS2_ARG_CONV_EXCL='*'
 export MSYS_NO_PATHCONV MSYS2_ARG_CONV_EXCL
+
+# `docker compose` lee COMPOSE_FILE del entorno. Se fija solo si no venía ya definido.
+COMPOSE_FILE="${COMPOSE_FILE:-compose.yaml}"
+export COMPOSE_FILE
 
 SERVICE="${COMPOSE_SERVICE:-db}"
 DB_NAME="${POSTGRES_DB:-cocina}"

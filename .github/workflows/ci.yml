@@ -30,5 +30,8 @@ jobs:
       - name: Permisos del Maven Wrapper
         run: chmod +x mvnw
 
+      - name: Comprobar que no hay secretos versionados
+        run: sh scripts/check-secrets.sh
+
       - name: Compilar, testear y verificar
         run: ./mvnw -B verify

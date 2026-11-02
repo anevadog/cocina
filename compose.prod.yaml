@@ -1,0 +1,124 @@
+# Pila de producción: PostgreSQL + API + Caddy (TLS automático).
+# Decisión y consecuencias: ADR-045. Procedimiento completo: docs/despliegue.md.
+#
+# Uso en el VPS, desde la raíz del repositorio:
+#   docker compose -f compose.prod.yaml up -d --build
+#   docker compose -f compose.prod.yaml ps
+#   docker compose -f compose.prod.yaml logs -f api
+#
+# Requisitos: un .env real (ver .env.production.example) y el DNS del dominio apuntando al VPS.
+# La base de datos no publica puertos: solo es accesible desde la red interna `backend`.
+
+name: cocina
+
+services:
+  db:
+    image: postgres:18
+    container_name: cocina-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?define POSTGRES_DB en .env}
+      POSTGRES_USER: ${POSTGRES_USER:?define POSTGRES_USER en .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: ${DB_MEMORY_LIMIT:-512M}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cocina-api:${APP_VERSION:-local}
+    container_name: cocina-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: db
+      DB_PORT: "5432"
+      TZ: UTC
+    # La aplicación no escribe en disco: logs a stdout y temporales en tmpfs.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    expose:
+      - "8080"
+    healthcheck:
+      # /ready comprueba base de datos y migraciones, no solo el proceso.
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/ready >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: ${API_MEMORY_LIMIT:-768M}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  proxy:
+    image: caddy:2-alpine
+    container_name: cocina-proxy
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?define SITE_ADDRESS en .env}
+      ACME_EMAIL: ${ACME_EMAIL:?define ACME_EMAIL en .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - backend
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  backend:
+    driver: bridge

@@ -1,0 +1,41 @@
+# Proxy inverso de producción: TLS automático con Let's Encrypt y cabeceras de seguridad.
+# Decisión: ADR-045. Operación: docs/despliegue.md.
+#
+# Variables (las inyecta compose.prod.yaml):
+#   SITE_ADDRESS  dominio público, por ejemplo cocina.example.com
+#   ACME_EMAIL    correo de contacto para Let's Encrypt
+{
+	email {$ACME_EMAIL}
+	# Sin API de administración: se configura solo por fichero y se reinicia el contenedor.
+	admin off
+}
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+		-Server
+	}
+
+	# La API solo recibe JSON pequeño; no hay subida de ficheros en el MVP.
+	request_body {
+		max_size 1MB
+	}
+
+	reverse_proxy api:8080 {
+		health_uri /ready
+		health_interval 30s
+		health_timeout 5s
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

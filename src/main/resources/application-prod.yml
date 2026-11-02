@@ -1,0 +1,49 @@
+# Perfil de producción (NFR-POR-01).
+#
+# No hay valores por defecto para nada sensible: la API no arranca sin JWT_SECRET
+# (SecurityConfig) y la base de datos exige credenciales. Todo llega por entorno.
+#
+# Activar con SPRING_PROFILES_ACTIVE=prod (lo fija compose.prod.yaml).
+
+spring:
+  main:
+    banner-mode: off
+  datasource:
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      minimum-idle: ${DB_POOL_MIN_IDLE:2}
+      connection-timeout: 5000
+  flyway:
+    # La API espera a que la base esté sana (depends_on: service_healthy). Si aun así
+    # tuviera que reintentar, es preferible esperar a abortar el arranque.
+    connect-retries: ${FLYWAY_CONNECT_RETRIES:10}
+  lifecycle:
+    # Margen para terminar las peticiones en curso durante un despliegue.
+    timeout-per-shutdown-phase: 30s
+
+server:
+  # Detrás de Caddy: respeta X-Forwarded-Proto/Host al generar enlaces y redirecciones.
+  forward-headers-strategy: framework
+  compression:
+    enabled: true
+    mime-types: application/json
+  tomcat:
+    threads:
+      max: ${SERVER_MAX_THREADS:50}
+    max-connections: ${SERVER_MAX_CONNECTIONS:200}
+    connection-timeout: 20s
+
+springdoc:
+  # La documentación se apaga en producción: expone la superficie completa de la API.
+  # Se activa solo de forma deliberada con API_DOCS_ENABLED=true.
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:false}
+
+logging:
+  level:
+    root: INFO
+    com.killa.cocina: INFO
+    # El detalle del pool y de Flyway solo interesa al depurar un arranque concreto.
+    com.zaxxer.hikari: WARN
