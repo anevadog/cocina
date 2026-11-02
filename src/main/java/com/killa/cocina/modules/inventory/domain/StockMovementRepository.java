@@ -24,4 +24,7 @@ public interface StockMovementRepository {
 
     /** Ajustes netos de salida por producto en el intervalo {@code [from, to)} (ECO-03). */
     Map<Long, BigDecimal> netAdjustmentOutflow(long establishmentId, Instant fromInclusive, Instant toExclusive);
+
+    /** Movimientos de un lote de un tipo, en orden cronológico (CAL-01). */
+    List<StockMovement> findByLot(long establishmentId, long lotId, MovementType type);
 }

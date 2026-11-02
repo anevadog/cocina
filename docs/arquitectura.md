@@ -162,7 +162,12 @@ congelado. Cada lote consumido deja su propio `stock_movements` de tipo `WASTE_O
 **puede retirar lotes caducados**; producción sigue sin consumirlos (ADR-039).
 
 `incidents` no se reabre en el MVP: la restricción `ck_incidents_closure` exige que una incidencia
-`CLOSED` tenga resolución, usuario y fecha de cierre, y que una abierta no los tenga.
+`CLOSED` tenga resolución, usuario y fecha de cierre, y que una abierta no los tenga. El estado solo
+avanza `OPEN → IN_PROGRESS → CLOSED` (o `OPEN → CLOSED`); la descripción y la severidad se fijan al
+abrirla (ADR-040).
+
+La trazabilidad no crea tablas propias: se reconstruye desde el kardex (`PRODUCTION_OUT` por lote) y
+los puertos publicados de producción. Calidad no lee entidades JPA de otro módulo (ADR-040).
 
 ## 4. Flujos críticos
 
@@ -290,6 +295,24 @@ desviaciones filtra por `finished_at` en la base y solo carga los batches del pe
 La merma es la vía para retirar un lote caducado; producción mantiene la prohibición de consumirlo
 (§4.3). El detalle por lote queda en el kardex y la cabecera conserva el coste congelado al PMP.
 
+### 4.9 Trazabilidad de lote a preparación
+
+1. Recibir `GET /stock-lots/{lotId}/traceability` con `quality:read` y resolver el lote del
+   establecimiento; si no existe, **404**.
+2. Leer del kardex los movimientos `PRODUCTION_OUT` de ese lote, en orden cronológico.
+3. Para cada uno, resolver `batch → ítem de plan → plan` y la versión publicada de la receta con los
+   puertos de producción, sin tocar sus entidades JPA (ADR-040).
+4. Devolver los datos del lote, su producto y unidad, y una lista de consumos con batch, plan, fecha y
+   servicio, receta, versión, cantidad y hora. Un lote sin consumos devuelve la lista vacía.
+
+### 4.10 Ciclo de una incidencia
+
+1. Validar descripción (10–1000 caracteres) y severidad; crear en `OPEN` con actor y fecha.
+2. Auditar `INCIDENT_OPENED`.
+3. En cada cambio, bloquear la fila, validar la transición y exigir resolución solo al cerrar.
+4. Guardar el nuevo estado con `updated_at`; al cerrar, `closed_by` y `closed_at`.
+5. Auditar `INCIDENT_STATUS_CHANGED` con el estado anterior y posterior. Desde `CLOSED` no hay cambios.
+
 ## 5. Multi-tenencia
 
 - `establishment_id` en todas las tablas de negocio.
@@ -394,6 +417,11 @@ Los informes aceptan como máximo 31 días naturales y se agrupan por fecha de n
 | `POST /api/v1/waste-records` | `quality:write` | Merma en unidad base con lote opcional; descuenta stock y se valora al PMP; 201 |
 | `GET /api/v1/waste-records` | `quality:read` | Paginado, más reciente primero |
 | `GET /api/v1/waste-records/{id}` | `quality:read` | Solo del establecimiento del token |
+| `POST /api/v1/incidents` | `quality:write` | Descripción de 10 a 1000 caracteres y severidad; nace en `OPEN`; 201 |
+| `GET /api/v1/incidents` | `quality:read` | Paginado por fecha de apertura, más recientes primero |
+| `GET /api/v1/incidents/{id}` | `quality:read` | Solo del establecimiento del token |
+| `PATCH /api/v1/incidents/{id}` | `quality:write` | Cambia el estado; al cerrar exige resolución; una cerrada no se reabre |
+| `GET /api/v1/stock-lots/{lotId}/traceability` | `quality:read` | Preparaciones que consumieron el lote, con batch, plan, receta y cantidad |
 
 El rango viaja en cada lectura y `recordedAt` es opcional (por defecto ahora, nunca futura). El actor
 sale del token y queda en la lectura y en la auditoría.
@@ -401,6 +429,10 @@ sale del token y queda en la lectura y en la auditoría.
 La merma consume el lote indicado o los lotes con saldo en orden FIFO, incluidos los caducados, y puede
 dejar saldo negativo solo si el producto lo permite. La cabecera se valora con el PMP y cada lote
 consumido deja su movimiento `WASTE_OUT` (ADR-039).
+
+La incidencia solo admite `OPEN → IN_PROGRESS`, `OPEN → CLOSED` e `IN_PROGRESS → CLOSED`. La resolución
+solo viaja al cerrar y es obligatoria entonces; una incidencia cerrada no se reabre (ADR-040). La
+trazabilidad devuelve la lista vacía para un lote sin consumos y 404 para un lote inexistente.
 
 ### 6.5 Auditoría
 
@@ -411,7 +443,7 @@ cubiertas: `USER_CREATED`, `USER_UPDATED`, `USER_ROLE_CHANGED`, `USER_DEACTIVATE
 `REFRESH_TOKEN_REUSED`, `CATEGORY_CREATED`, `CATEGORY_UPDATED`, `PRODUCT_CREATED`, `PRODUCT_UPDATED`,
 `PRODUCT_ARCHIVED`, `PRODUCT_CONVERSIONS_UPDATED`, `SUPPLIER_CREATED`, `SUPPLIER_UPDATED`,
 `STOCK_PURCHASE_RECORDED`, `STOCK_ADJUSTMENT_RECORDED`, `STOCK_COST_CHANGED`,
-`TEMPERATURE_LOGGED` y `WASTE_RECORDED`.
+`TEMPERATURE_LOGGED`, `WASTE_RECORDED`, `INCIDENT_OPENED` e `INCIDENT_STATUS_CHANGED`.
 
 ### 6.6 Arranque del primer administrador
 

@@ -17,6 +17,20 @@ interface StockMovementJpaRepository extends JpaRepository<StockMovementEntity, 
 
     long countByEstablishmentIdAndProductId(long establishmentId, long productId);
 
+    /** Movimientos de un lote de un tipo, para la trazabilidad lote → preparación (CAL-01). */
+    @Query("""
+            select m
+            from StockMovementEntity m
+            where m.establishmentId = :establishmentId
+              and m.lotId = :lotId
+              and m.type = :type
+            order by m.occurredAt asc, m.id asc
+            """)
+    List<StockMovementEntity> findByLot(
+            @Param("establishmentId") long establishmentId,
+            @Param("lotId") long lotId,
+            @Param("type") MovementType type);
+
     /** Consumo de producción por producto para unos batches (ECO-03). */
     @Query("""
             select m.productId, sum(m.quantityBase)

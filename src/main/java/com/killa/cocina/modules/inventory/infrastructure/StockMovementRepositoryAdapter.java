@@ -67,6 +67,13 @@ class StockMovementRepositoryAdapter implements StockMovementRepository {
                 toExclusive));
     }
 
+    @Override
+    public List<StockMovement> findByLot(long establishmentId, long lotId, MovementType type) {
+        return movements.findByLot(establishmentId, lotId, type).stream()
+                .map(StockMovementEntity::toDomain)
+                .toList();
+    }
+
     private static Map<Long, BigDecimal> toMap(List<Object[]> rows) {
         Map<Long, BigDecimal> values = new LinkedHashMap<>();
         for (Object[] row : rows) {

@@ -753,3 +753,35 @@ depende de qué lote eligió el FIFO, mientras el kardex conserva el detalle rea
 inserción provisional a cambio de no inventar un identificador en la aplicación. Un lote caducado ya no
 queda atrapado en el inventario: se retira con merma, que es justo la operación que CAL-04 quiere dejar
 registrada.
+
+---
+
+## ADR-040 — Incidencias sin reapertura y trazabilidad por puertos publicados
+
+**Contexto:** CAL-05 exige incidencias con severidad, estado y resolución, y CAL-01 exige responder qué
+preparaciones consumieron un lote y cuándo. Una incidencia puede reabrirse si el problema reaparece,
+pero el histórico debe seguir siendo fiable. La trazabilidad cruza calidad, inventario y producción, y
+calidad no puede leer las tablas de producción directamente.
+
+**Opciones:** reapertura con historial de estados (A) · cierre definitivo y nueva incidencia si
+reaparece (B). Para la trazabilidad: consulta SQL que una las tablas de los tres módulos (A) · puerto
+de producción resuelto por un adaptador de calidad (B).
+
+**Decisión:** la incidencia nace en `OPEN` y solo admite `OPEN → IN_PROGRESS`, `OPEN → CLOSED` e
+`IN_PROGRESS → CLOSED`. Volver a `OPEN` es un error de validación y cualquier cambio desde `CLOSED` es
+un conflicto: el cierre es definitivo. La descripción y la severidad se fijan al abrir; solo cambian el
+estado y, al cerrar, la resolución, que es obligatoria en ese momento. La apertura se audita como
+`INCIDENT_OPENED` y cada transición como `INCIDENT_STATUS_CHANGED` con el estado anterior y posterior.
+
+La trazabilidad parte de los movimientos `PRODUCTION_OUT` del lote en el kardex y resuelve batch → ítem
+de plan → plan y versión publicada con los puertos de producción (`ProductionBatchRepository`,
+`ProductionPlanItemRepository`, `ProductionPlanRepository` y `RecipeCompositionCatalog`). El resultado
+se expone como `GET /api/v1/stock-lots/{lotId}/traceability` con `quality:read`; un lote sin consumos
+devuelve la lista vacía y un lote inexistente, 404. No se añade un endpoint de lectura de auditoría en
+F6.
+
+**Consecuencias:** el histórico conserva un cierre por incidencia y una recaída se registra como
+incidencia nueva, lo que evita reescribir fechas y resoluciones pasadas. La trazabilidad no duplica el
+modelo de producción ni acopla calidad a sus entidades JPA; el precio es una resolución por movimiento
+que se apoya en índices ya existentes y en el número acotado de consumos de un lote. Si en el futuro se
+quiere reabrir, habrá que añadir un histórico de estados y revisar el trigger de cierre.

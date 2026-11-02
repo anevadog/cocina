@@ -15,7 +15,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
 | F3 | Inventario, lotes, kardex y PMP | [x] | ~2 semanas |
 | F4 | Recetas, versiones y costes | [x] | ~2 semanas |
 | F5 | Producción y descuento automático | [x] | ~1,5 semanas |
-| F6 | Calidad y trazabilidad | [~] | ~1,5 semanas |
+| F6 | Calidad y trazabilidad | [x] | ~1,5 semanas |
 | F7 | Informes, endurecimiento y despliegue | [ ] | ~2 semanas |
 
 Total orientativo MVP: **13–16 semanas** a tiempo parcial, una persona. Son estimaciones, no
@@ -162,9 +162,12 @@ remoto Git; se comprobará al publicar el repositorio.
 - [x] Temperaturas con rangos y alertas (CAL-02)
 - [x] Mermas con coste (CAL-03)
 - [x] Bloqueo de lotes caducados (CAL-04)
-- [ ] Incidencias (CAL-05)
-- [ ] Trazabilidad lote → preparación (CAL-01)
-- [ ] Auditoría completa de acciones sensibles (CAL-06)
+- [x] Incidencias (CAL-05)
+- [x] Trazabilidad lote → preparación (CAL-01)
+- [x] Auditoría completa de acciones sensibles (CAL-06)
+- [x] Documentación: arquitectura, ADR-038, ADR-039 y ADR-040, memoria y AGENTS.md
+
+**Fase cerrada.**
 
 ## F7 — Informes, endurecimiento y despliegue
 
