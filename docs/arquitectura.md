@@ -147,9 +147,21 @@ batches. El plan es único por establecimiento, fecha y servicio, y sus ítems s
 
 | Tabla | Campos principales |
 |---|---|
-| `temperature_logs` | `id`, `establishment_id`, `equipment`, `kind`, `value_c`, `min_c`, `max_c`, `within_range`, `actor_id`, `recorded_at`, `notes` |
-| `waste_records` | `id`, `establishment_id`, `product_id`, `lot_id`, `quantity_base`, `reason`, `cost`, `actor_id`, `occurred_at` |
+| `temperature_logs` | `id`, `establishment_id`, `kind`, `equipment`, `value_c`, `min_c`, `max_c`, `within_range`, `actor_id`, `recorded_at`, `created_at` |
+| `waste_records` | `id`, `establishment_id`, `product_id`, `lot_id`, `quantity_base`, `unit_cost`, `cost`, `reason`, `actor_id`, `occurred_at` |
 | `incidents` | `id`, `establishment_id`, `severity`, `description`, `status`, `resolution`, `opened_by`, `closed_by`, `opened_at`, `closed_at` |
+
+En `temperature_logs` el rango (`min_c`, `max_c`) forma parte de cada lectura, no de una configuración
+por equipo: así una lectura pasada conserva el criterio con el que se juzgó. `within_range` es una
+columna generada por PostgreSQL (`value_c BETWEEN min_c AND max_c`) y no puede contradecir a los
+valores. Una lectura fuera de rango se guarda; la alerta es su consecuencia.
+
+`waste_records` es la cabecera de la merma: guarda la cantidad total, el PMP aplicado y el coste
+congelado. Cada lote consumido deja su propio `stock_movements` de tipo `WASTE_OUT` con
+`reference_type=waste_record` y el `id` de la cabecera.
+
+`incidents` no se reabre en el MVP: la restricción `ck_incidents_closure` exige que una incidencia
+`CLOSED` tenga resolución, usuario y fecha de cierre, y que una abierta no los tenga.
 
 ## 4. Flujos críticos
 
@@ -355,17 +367,30 @@ activos.
 Los informes aceptan como máximo 31 días naturales y se agrupan por fecha de negocio en
 `Europe/Madrid`.
 
-### 6.4 Auditoría
+### 6.4 Calidad y trazabilidad
+
+| Método y ruta | Permiso | Notas |
+|---|---|---|
+| `POST /api/v1/temperature-logs` | `quality:write` | Lectura con su rango; fuera de rango se guarda y genera alerta; 201 |
+| `GET /api/v1/temperature-logs` | `quality:read` | Paginado, más reciente primero |
+| `GET /api/v1/temperature-logs/{id}` | `quality:read` | Solo del establecimiento del token |
+| `GET /api/v1/quality/temperature-alerts` | `quality:read` | Lecturas fuera de rango, máximo las 100 más recientes |
+
+El rango viaja en cada lectura y `recordedAt` es opcional (por defecto ahora, nunca futura). El actor
+sale del token y queda en la lectura y en la auditoría.
+
+### 6.5 Auditoría
 
 `audit_logs` es append-only: sin endpoint de edición ni borrado. Se registra en la misma transacción
 que la operación auditada, con `actor_id` tomado del token (`CurrentActor`), nunca del cuerpo de la
-petición. Acciones ya cubiertas: `USER_CREATED`, `USER_UPDATED`, `USER_ROLE_CHANGED`,
-`USER_DEACTIVATED`, `LOGIN_FAILED`, `REFRESH_TOKEN_REUSED`, `CATEGORY_CREATED`, `CATEGORY_UPDATED`,
-`PRODUCT_CREATED`, `PRODUCT_UPDATED`, `PRODUCT_ARCHIVED`, `PRODUCT_CONVERSIONS_UPDATED`,
-`SUPPLIER_CREATED`, `SUPPLIER_UPDATED`, `STOCK_PURCHASE_RECORDED`, `STOCK_ADJUSTMENT_RECORDED` y
-`STOCK_COST_CHANGED`.
+petición. Desde V7 un trigger rechaza `UPDATE` y `DELETE` también por SQL directo. Acciones ya
+cubiertas: `USER_CREATED`, `USER_UPDATED`, `USER_ROLE_CHANGED`, `USER_DEACTIVATED`, `LOGIN_FAILED`,
+`REFRESH_TOKEN_REUSED`, `CATEGORY_CREATED`, `CATEGORY_UPDATED`, `PRODUCT_CREATED`, `PRODUCT_UPDATED`,
+`PRODUCT_ARCHIVED`, `PRODUCT_CONVERSIONS_UPDATED`, `SUPPLIER_CREATED`, `SUPPLIER_UPDATED`,
+`STOCK_PURCHASE_RECORDED`, `STOCK_ADJUSTMENT_RECORDED`, `STOCK_COST_CHANGED` y
+`TEMPERATURE_LOGGED`.
 
-### 6.5 Arranque del primer administrador
+### 6.6 Arranque del primer administrador
 
 `AdminBootstrap` garantiza la fila de `establishments` y crea un `ADMIN` solo si no hay ningún usuario
 y existe `BOOTSTRAP_ADMIN_PASSWORD`. Sin contraseña configurada no se crea nada: no hay credenciales

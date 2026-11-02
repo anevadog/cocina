@@ -698,3 +698,27 @@ lectura filtrada de batches para desviaciones; además, la merma mostrada incluy
 redondeo de la expansión. Se acepta porque es la misma cifra que se descontó del stock y queda
 documentada.
 
+---
+
+## ADR-038 — Rango de temperatura por lectura y alerta derivada
+
+**Contexto:** CAL-02 exige registrar temperaturas de equipo y preparación y generar una alerta con
+usuario y hora cuando la lectura está fuera de rango. Un rango configurable por equipo introduce una
+tabla adicional, una pantalla de configuración que el MVP no tiene y el riesgo de reinterpretar el
+pasado: si mañana cambia el rango de una cámara, las lecturas antiguas dejarían de ser comparables
+con el criterio con el que se juzgaron.
+
+**Opciones:** configuración por equipo (A) · rango fijo global por tipo (B) · rango en cada lectura
+(C).
+
+**Decisión:** (C). `temperature_logs` guarda `value_c`, `min_c` y `max_c`; `within_range` es una
+columna generada por PostgreSQL con `value_c BETWEEN min_c AND max_c`. Una lectura fuera de rango no
+es un error de validación: se persiste con `within_range=false` y aparece en
+`GET /api/v1/quality/temperature-alerts` con actor y `recorded_at`. El rango debe ser creciente, las
+temperaturas admiten dos decimales y `recorded_at` es opcional, nunca futura. La escritura se audita
+como `TEMPERATURE_LOGGED`.
+
+**Consecuencias:** cada lectura conserva su criterio y no hace falta configurar equipos en el MVP. El
+coste es que el cliente debe enviar el rango en cada alta y que no se puede cambiar el criterio de una
+lectura ya registrada; se corrige con otra lectura. Las alertas se limitan a las 100 más recientes
+para que la consulta no crezca sin control.

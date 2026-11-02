@@ -14,8 +14,8 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
 | F2 | Auth, usuarios y RBAC | [x] | ~1 semana |
 | F3 | Inventario, lotes, kardex y PMP | [x] | ~2 semanas |
 | F4 | Recetas, versiones y costes | [x] | ~2 semanas |
-| F5 | Producción y descuento automático | [ ] | ~1,5 semanas |
-| F6 | Calidad y trazabilidad | [ ] | ~1,5 semanas |
+| F5 | Producción y descuento automático | [x] | ~1,5 semanas |
+| F6 | Calidad y trazabilidad | [~] | ~1,5 semanas |
 | F7 | Informes, endurecimiento y despliegue | [ ] | ~2 semanas |
 
 Total orientativo MVP: **13–16 semanas** a tiempo parcial, una persona. Son estimaciones, no
@@ -159,7 +159,7 @@ remoto Git; se comprobará al publicar el repositorio.
 
 ## F6 — Calidad y trazabilidad
 
-- [ ] Temperaturas con rangos y alertas (CAL-02)
+- [x] Temperaturas con rangos y alertas (CAL-02)
 - [ ] Mermas con coste (CAL-03)
 - [ ] Bloqueo de lotes caducados (CAL-04)
 - [ ] Incidencias (CAL-05)
