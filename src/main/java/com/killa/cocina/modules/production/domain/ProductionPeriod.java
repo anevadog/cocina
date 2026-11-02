@@ -10,7 +10,7 @@ import java.time.temporal.ChronoUnit;
  *
  * <p>Las fechas son las del negocio ({@code Europe/Madrid}): el informe de un día cubre desde las
  * 00:00 de ese día hasta las 00:00 del siguiente, con el desfase de verano aplicado por la zona
- * (AGENTS.md §8). El rango se acota a 31 días para que una consulta no recorra años de kardex.</p>
+ * (`docs/arquitectura.md` §11). El rango se acota a 31 días para que una consulta no recorra años de kardex.</p>
  */
 public record ProductionPeriod(LocalDate from, LocalDate to) {
 

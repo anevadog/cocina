@@ -188,7 +188,7 @@ La copia local y la externa se programan con `cron` en el VPS. El script local u
 - [ ] `cron` de backup ejecutado al menos una vez; el volcado y su `.sha256` existen y la copia
       externa está en el bucket.
 - [ ] Sonda externa de `/health` configurada con alerta.
-- [ ] Registro del despliegue anotado en `docs/memoria.md`.
+- [ ] Registro del despliegue anotado (fecha, versión desplegada y comprobaciones).
 
 ## 10. Riesgos aceptados
 

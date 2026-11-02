@@ -1,28 +1,79 @@
 # Cocina — Sistema de gestión y control de cocina profesional
 
-API REST para estandarizar y controlar la operación de la cocina de un restaurante: inventario con
-lotes y caducidades, recetas técnicas versionadas con coste real, producción diaria con descuento
-automático de stock, trazabilidad y permisos por puesto.
+[![CI](https://github.com/anevadog/cocina/actions/workflows/ci.yml/badge.svg)](https://github.com/anevadog/cocina/actions/workflows/ci.yml)
 
-**Estado:** F7 cerrada (bloques A, B y C). La API arranca, aplica migraciones V1–V7 en PostgreSQL 18,
+**Una API para que la cocina de un restaurante funcione igual la lleve quien la lleve:** qué hay en el
+almacén, cuánto cuesta de verdad cada plato y qué hay que producir hoy.
+
+![Panel de demostración con datos ficticios servidos por la API real](docs/img/demo-panel.jpeg)
+
+*Panel de demostración: los datos son ficticios, pero los sirve la API real.*
+
+<!-- VIDEO: añadir aquí el enlace al vídeo de 2 minutos cuando esté grabado -->
+
+## Qué resuelve
+
+- **El coste de cada plato no se pierde.** Al publicar una receta se congela su coste por ración; si
+  el proveedor sube el precio, la nueva versión lo refleja y la anterior queda como histórico.
+- **Se sabe qué va a caducar y cuánto dinero supone**, antes de tirarlo. Un lote caducado no se puede
+  usar en producción: la API lo bloquea.
+- **El stock cuadra aunque trabajen varios a la vez.** Si dos cocineros producen al mismo tiempo, el
+  almacén nunca queda en negativo ni se descuenta dos veces. Cada operación queda registrada con quién
+  la hizo y cuándo.
+
+## Cómo está hecho
+
+| Pieza | Tecnología |
+|---|---|
+| Lenguaje y framework | Java 25 + Spring Boot 4 (API REST) |
+| Base de datos | PostgreSQL 18 con migraciones Flyway |
+| Seguridad | Login con JWT, contraseñas con Argon2id y cuatro roles (admin, jefe de cocina, cocinero, almacén) |
+| Calidad | 247 tests automáticos; los de integración usan PostgreSQL real con Testcontainers |
+| Entrega | Docker, GitHub Actions y despliegue en VPS con Caddy (HTTPS automático) |
+
+El código está organizado en módulos (inventario, recetas, producción, calidad…) y un test de
+arquitectura impide que un módulo se salte las fronteras de otro.
+
+## Pruébalo
+
+Requiere Docker en marcha, JDK 25 y una terminal `sh` (Git Bash, WSL o Linux):
+
+```bash
+git clone https://github.com/anevadog/cocina.git && cd cocina
+sh scripts/demo.sh        # base aislada, datos de ejemplo y recorrido completo
+```
+
+Al terminar, Swagger UI queda en <http://localhost:8081/swagger-ui.html>. Usuario `demo.admin` y
+contraseña `Demo2026!segura` (solo datos ficticios). Para pararlo: `sh scripts/demo.sh --stop`.
+Detalle en [`docs/demo.md`](docs/demo.md).
+
+## Para revisores técnicos
+
+- [`docs/revision-tecnica.md`](docs/revision-tecnica.md): cada garantía con el test o la restricción
+  de base de datos que la demuestra, y los límites conocidos.
+- [`docs/decisiones.md`](docs/decisiones.md): decisiones técnicas (ADR) con alternativas y
+  consecuencias.
+- [`docs/arquitectura.md`](docs/arquitectura.md): módulos, modelo de datos y flujos críticos.
+
+## Estado del proyecto
+
+**Fases:** F7 cerrada (bloques A, B y C). La API arranca, aplica migraciones V1–V7 en PostgreSQL 18,
 expone `/health`, `/ready` y OpenAPI, e incluye autenticación JWT con refresh rotatorio, RBAC por rol,
 auditoría append-only protegida por trigger, inventario con lotes y PMP, recetas versionadas con coste,
 producción con descuento atómico, temperaturas con alertas, mermas, incidencias, trazabilidad
 lote → preparación, informes de costes y caducidades, seed de datos demo, copias de seguridad con
 restauración probada, una medición de rendimiento repetible y una pila de producción con
 `compose.prod.yaml` y Caddy. **247 tests** en verde más una comprobación de rendimiento opt-in. Queda
-P2 (base legal y retención) antes de datos reales de empleados. Ver `docs/memoria.md`.
+P2 (base legal y retención) antes de datos reales de empleados. Ver `docs/plan.md`.
 
 ## Documentación
 
 | Documento | Contenido |
 |---|---|
-| `AGENTS.md` | Contexto, reglas y convenciones. **Empieza aquí** |
 | `docs/requisitos.md` | Requisitos funcionales y no funcionales con criterios de aceptación |
 | `docs/arquitectura.md` | Módulos, modelo de datos y flujos críticos |
 | `docs/decisiones.md` | Registro de decisiones técnicas (ADR) |
 | `docs/plan.md` | Fases, tareas y progreso |
-| `docs/memoria.md` | Estado actual y punto de continuación |
 | `docs/backups.md` | Copias de seguridad, restauración y prueba registrada |
 | `docs/rendimiento.md` | Método y resultados de NFR-REN-01/02 |
 | `docs/despliegue.md` | VPS, TLS, primer despliegue, actualización, backups y operación |
@@ -30,7 +81,6 @@ P2 (base legal y retención) antes de datos reales de empleados. Ver `docs/memor
 | `docs/demo.md` | Guion y script de demostración reproducible con datos ficticios |
 | `docs/demo-publica.md` | Demo pública de solo lectura para clientes y reclutadores: despliegue, seguridad y operación |
 | `docs/revision-tecnica.md` | Guía para un revisor externo o auditor: qué mirar, cómo reproducirlo y qué límites hay |
-| `docs/chuleta-defensa.md` | Chuleta para defender el proyecto en una exposición técnica |
 
 ## Requisitos del entorno
 
@@ -177,7 +227,7 @@ El informe de cobertura queda en `target/site/jacoco/index.html`; `verify` no im
 
 ```text
 cocina/
-├─ AGENTS.md  CLAUDE.md  README.md
+├─ README.md
 ├─ docs/                        # requisitos, arquitectura, decisiones, plan, memoria, backups, rendimiento, despliegue y seguridad
 ├─ scripts/                     # backup.sh, restore.sh, backup-offsite.sh y check-secrets.sh
 ├─ .mvn/wrapper/                # configuración del Maven Wrapper (Maven 3.9.16)

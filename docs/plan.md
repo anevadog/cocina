@@ -28,7 +28,7 @@ compromisos.
 3. `./mvnw verify` en verde.
 4. Sin secretos, sin datos personales reales, sin `TODO` sin justificar.
 5. Documentación afectada actualizada (requisitos si cambia el alcance; ADR si cambia una decisión).
-6. `docs/plan.md` y `docs/memoria.md` actualizados.
+6. `docs/plan.md` actualizado.
 7. Cambio listo para commit, agrupado con cambios relacionados.
 
 ---
@@ -38,9 +38,9 @@ compromisos.
 - [x] Analizar el proyecto y delimitar alcance
 - [x] Definir requisitos con ID y criterio de aceptación
 - [x] Decidir stack, persistencia y entorno
-- [x] Crear documentación inicial (`AGENTS.md`, `README.md`, `docs/`)
+- [x] Crear documentación inicial (`README.md`, `docs/`)
 - [x] Revisión del usuario
-- [x] `git init` en `cocina/` y commits iniciales (los ejecuta el usuario): `5c25101`, `88259cb`
+- [x] `git init` en `cocina/` y commits iniciales
 - [ ] Decidir política de retención de datos (PENDIENTE P2 — bloquea datos reales; delegado en asesoría el 2026-11-02, preguntas en `docs/seguridad.md` §6.5)
 
 ## F1 — Esqueleto, entorno y CI
@@ -153,7 +153,7 @@ remoto Git; se comprobará al publicar el repositorio.
 
 - [x] Desviación previsto vs real con motivo obligatorio (PRD-05)
 - [x] Consumo teórico vs real por producto (ECO-03)
-- [x] Documentación: arquitectura, ADR-036 y ADR-037, memoria y AGENTS.md
+- [x] Documentación: arquitectura, ADR-036 y ADR-037
 
 **Fase cerrada.**
 
@@ -165,7 +165,7 @@ remoto Git; se comprobará al publicar el repositorio.
 - [x] Incidencias (CAL-05)
 - [x] Trazabilidad lote → preparación (CAL-01)
 - [x] Auditoría completa de acciones sensibles (CAL-06)
-- [x] Documentación: arquitectura, ADR-038, ADR-039 y ADR-040, memoria y AGENTS.md
+- [x] Documentación: arquitectura, ADR-038, ADR-039 y ADR-040
 
 **Fase cerrada.**
 
@@ -177,7 +177,7 @@ remoto Git; se comprobará al publicar el repositorio.
 - [x] Informe de costes por versión publicada con evolución entre versiones (ECO-01)
 - [x] Informe de caducidades con días restantes y valor en riesgo (ECO-06)
 - [x] Tests de dominio, integración y permisos
-- [x] Documentación: arquitectura, ADR-041, memoria y AGENTS.md
+- [x] Documentación: arquitectura, ADR-041
 
 **Bloque B — rendimiento, backups y seed (hecho y verificado)**
 
@@ -200,9 +200,19 @@ remoto Git; se comprobará al publicar el repositorio.
 - [x] Revisión de seguridad y de datos personales (NFR-DAT-01): minimización, inventario, retención
       propuesta y P2 visible (`docs/seguridad.md`)
 - [x] Comprobación de secretos en CI (`scripts/check-secrets.sh`, NFR-SEG-04)
-- [x] Cierre documental de F7: ADR-045/046, P1 resuelta, README, AGENTS.md y memoria
+- [x] Cierre documental de F7: ADR-045/046, P1 resuelta y README
 
 **Fase cerrada.** Queda P2 (base legal y retención definitiva) antes de datos reales de empleados.
+
+## Material de presentación (fuera del MVP)
+
+No amplía el alcance funcional; sirve para enseñar el proyecto.
+
+- [x] Demo pública de solo lectura preparada y verificada en local (ADR-047, `docs/demo-publica.md`)
+- [x] README con cabecera para quien no es técnico: captura del panel, qué resuelve, stack, prueba en dos
+      comandos y enlaces para revisores técnicos
+- [ ] Vídeo de presentación enlazado en el README
+- [ ] Repositorio público en GitHub
 
 ## Fuera de este plan
 
@@ -213,5 +223,5 @@ multi-establecimiento activo. Se planificarán como v1 una vez validado el MVP.
 
 - Un commit por cambio lógico completo y validado.
 - Mensajes Conventional Commits en inglés.
-- El usuario ejecuta `git add` y `git commit`. El agente no modifica el repositorio.
+- Cada commit se revisa con `git diff` antes de hacerlo.
 - Push cuando haya uno o varios commits validados y sea buen punto de respaldo.

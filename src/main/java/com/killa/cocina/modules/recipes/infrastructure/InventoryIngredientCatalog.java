@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 /**
  * Catálogo de ingredientes sobre la API de aplicación de inventario.
  *
- * <p>Recetas no conoce las entidades JPA ni el modelo de dominio de inventario (AGENTS.md §6): usa su
+ * <p>Recetas no conoce las entidades JPA ni el modelo de dominio de inventario (`docs/arquitectura.md` §2.1): usa su
  * puerto publicado y reutiliza la misma aritmética de unidades, para que una receta no invente
  * conversiones distintas de las de una compra.</p>
  */

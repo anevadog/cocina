@@ -523,3 +523,37 @@ por defecto. La decisión y sus alternativas están en ADR-019.
 | Retención y base legal de datos personales | PENDIENTE |
 | Adminer en desarrollo | PENDIENTE |
 | Subrecetas (REC-07) | v1 — el modelo de `recipe_items` se ampliará con componentes |
+
+## 11. Reglas de dominio y convenciones
+
+Reglas no negociables que el código y la base de datos hacen cumplir:
+
+1. **Cantidades y dinero con `BigDecimal`**, nunca `double` ni `float`. Cantidad `numeric(12,3)`,
+   dinero `numeric(12,4)`, moneda EUR.
+2. **Toda cantidad se persiste en la unidad base** del producto (g, ml, ud). Las conversiones se
+   aplican en el borde (entrada/salida), no en el almacenamiento.
+3. **Una versión de receta publicada es inmutable.** Cualquier cambio crea versión nueva.
+4. **El descuento de stock es transaccional y atómico.** Si un ingrediente falla, no se descuenta
+   ninguno. Nunca stock negativo con la política de bloqueo activa.
+5. **Los movimientos de stock son un libro inmutable.** No hay endpoint de edición ni borrado; los
+   errores se corrigen con un movimiento de ajuste.
+6. **`establishment_id` es obligatorio en todas las tablas de negocio** desde la primera migración.
+7. **Toda operación de negocio registra actor y fecha** (`actor_id`, `occurred_at` en UTC).
+8. **Las acciones sensibles se auditan**: ajustes de stock, cambios de coste, cambios de rol,
+   publicación de recetas y cierre de incidencias.
+9. **Un lote caducado no se consume.** Se bloquea con error de conflicto.
+10. **El coste se calcula con el PMP vigente** y se congela al publicar la versión de receta.
+
+Convenciones:
+
+- Paquete raíz `com.killa.cocina`, un paquete por módulo bajo `modules`.
+- Clases en inglés; mensajes de API y documentación en español.
+- DTOs como `record`; entidades JPA con constructor protegido y setters mínimos; sin Lombok (ADR-015).
+- Fechas como `Instant`/`OffsetDateTime` en UTC; la zona de negocio (`Europe/Madrid`) solo se aplica
+  en presentación e informes.
+- Tablas en `snake_case` plural; claves primarias `bigint` con secuencia.
+- Migraciones Flyway inmutables una vez aplicadas; `ddl-auto` siempre `validate`.
+- Commits con Conventional Commits; formato con Spotless (ADR-032).
+
+Las migraciones V1–V7 citan estas reglas como «AGENTS.md §7», el documento de reglas donde se
+fijaron al empezar. No se editan porque cambiar una migración aplicada rompe su checksum en Flyway.

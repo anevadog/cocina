@@ -227,9 +227,9 @@ aislamiento multi-tenant activo ni facturación por establecimiento.
 
 ## ADR-014 — Repositorio en `cocina/`
 
-**Contexto:** el repositorio detectado apunta a `C:\Users\Nevado_Negrete` (todo el perfil).
+**Contexto:** el repositorio detectado apuntaba a toda la carpeta de usuario del sistema.
 
-**Decisión:** repositorio independiente en `C:\Users\Nevado_Negrete\cocina`.
+**Decisión:** repositorio independiente en la carpeta `cocina/`.
 
 **Consecuencias:** historial limpio y `.gitignore` significativo. El repositorio de la carpeta de
 usuario no se usa para el proyecto.
@@ -321,7 +321,7 @@ secuencia queda sincronizada.
 
 ## ADR-020 — Casos de uso transaccionales en `infrastructure` tras un puerto de dominio
 
-**Contexto:** AGENTS.md §6 exige `api → domain` e `infrastructure → domain`, y el dominio sin Spring.
+**Contexto:** `docs/arquitectura.md` §2.1 exige `api → domain` e `infrastructure → domain`, y el dominio sin Spring.
 Los casos de uso necesitan `@Transactional`, el codificador de contraseñas y serialización.
 
 **Opciones:** servicios de aplicación en `domain` con Spring (rompe la regla) · controladores con
@@ -670,7 +670,7 @@ sin cambiar el modelo, porque el batch ya es la unidad de ejecución.
 ## ADR-037 — Puertos de producción, bloqueo ordenado e informes de consumo
 
 **Contexto:** producción necesita leer recetas y productos y descontar stock. Si importara sus
-entidades JPA, rompería las fronteras modulares (AGENTS.md §6). Además, una ejecución toca varios
+entidades JPA, rompería las fronteras modulares (`docs/arquitectura.md` §2.1). Además, una ejecución toca varios
 productos y dos ejecuciones simultáneas podrían interbloquearse o sobrevender. Los informes deben
 comparar el consumo teórico con el real sin cargar el kardex completo.
 

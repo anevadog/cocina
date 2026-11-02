@@ -60,3 +60,10 @@ pgdata/
 
 # Copias de seguridad locales (nunca se commitean: contienen datos)
 backups/
+
+# Notas de trabajo locales (no forman parte del producto)
+AGENTS.md
+CLAUDE.md
+docs/memoria.md
+docs/chuleta-defensa.md
+docs/guion-video.md

@@ -6,7 +6,7 @@ import java.math.BigDecimal;
  * Producto visto desde recetas.
  *
  * <p>Es una proyección mínima y deliberadamente ajena a los tipos de inventario: el módulo de
- * recetas no importa sus entidades ni su modelo de dominio (AGENTS.md §6).</p>
+ * recetas no importa sus entidades ni su modelo de dominio (`docs/arquitectura.md` §2.1).</p>
  *
  * @param baseUnit etiqueta de la unidad base ({@code g}, {@code ml}, {@code ud})
  * @param currentCost PMP vigente por unidad base

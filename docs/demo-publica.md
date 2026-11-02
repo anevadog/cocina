@@ -150,19 +150,13 @@ Con la referencia de `docs/despliegue.md` §2 (precios orientativos, confirmar c
 Límites de la pila: PostgreSQL 512 MB, API 768 MB y Caddy sin límite explícito. Con 2 GB de RAM se
 puede ejecutar, pero compilar en el servidor necesita margen; 4 GB evitan el OOM durante el build.
 
-## 8. Uso con reclutadores
+## 8. Límites de la demo
 
-1. Enviar la URL y una frase: «panel de demostración con datos ficticios; se actualiza solo».
-2. No hay credenciales que compartir ni que caducar.
-3. Tres cosas que se ven en diez segundos: coste congelado por ración, lotes con días restantes y
-   valor en riesgo, y la desviación entre lo planificado y lo producido.
-4. Si preguntan por la API: el panel consume cinco endpoints reales; el resto está cerrado por el
-   proxy y la API exige JWT. La prueba técnica está en `docs/revision-tecnica.md` y la chuleta de
-   defensa en `docs/chuleta-defensa.md`.
+El panel consume cinco endpoints reales; el resto está cerrado por el proxy y la API exige JWT. La
+prueba técnica está en `docs/revision-tecnica.md`.
 
-**Qué no demuestra la demo:** que el sistema aguante producción real, que los datos sean de un
-cliente, que exista interfaz de usuario para operar (el panel es de solo lectura) ni que P2 esté
-resuelto. Decirlo antes de que lo pregunten.
+La demo **no** demuestra que el sistema aguante producción real, que los datos sean de un cliente, que
+exista interfaz de usuario para operar (el panel es de solo lectura) ni que P2 esté resuelto.
 
 ## 9. Previsualización local
 

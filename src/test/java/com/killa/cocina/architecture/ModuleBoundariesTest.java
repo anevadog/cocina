@@ -11,7 +11,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * Fronteras de la arquitectura modular (AGENTS.md §6), verificadas en cada build.
+ * Fronteras de la arquitectura modular (`docs/arquitectura.md` §2.1), verificadas en cada build.
  *
  * <p>Las reglas se aplican a los paquetes {@code ..modules..}. Mientras un módulo no exista, su
  * regla se cumple de forma vacía; en cuanto aparezca código que la incumpla, el build falla.</p>

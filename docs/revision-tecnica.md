@@ -1,7 +1,7 @@
 # Guía de revisión técnica
 
 > Para un revisor externo o un auditor que no conoce el proyecto: qué mirar, en qué orden, cómo
-> reproducirlo y qué límites tiene. No sustituye a `docs/memoria.md`; lo ordena para una revisión.
+> reproducirlo y qué límites tiene.
 > Última revisión: 2026-11-02.
 
 ## 1. Qué se está revisando
@@ -16,9 +16,8 @@ Tres cosas que conviene saber antes de empezar:
   aplicación. Un revisor no encontrará pantallas de negocio.
 - **Un solo establecimiento activo**, pero el modelo lleva `establishment_id` desde la primera
   migración.
-- **Repositorio privado en GitHub**: `origin` → <https://github.com/anevadog/cocina>. Para revisarlo hay
-  que pedir acceso o clonarlo con una cuenta autorizada; el CI de GitHub Actions se ejecuta en cada
-  push a `main`.
+- **Repositorio en GitHub**: <https://github.com/anevadog/cocina>. El CI de GitHub Actions se ejecuta
+  en cada push a `main`.
 
 ## 2. Revisión en cuatro pasos
 
