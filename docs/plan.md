@@ -16,7 +16,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
 | F4 | Recetas, versiones y costes | [x] | ~2 semanas |
 | F5 | Producción y descuento automático | [x] | ~1,5 semanas |
 | F6 | Calidad y trazabilidad | [x] | ~1,5 semanas |
-| F7 | Informes, endurecimiento y despliegue | [ ] | ~2 semanas |
+| F7 | Informes, endurecimiento y despliegue | [~] En curso (bloque A) | ~2 semanas |
 
 Total orientativo MVP: **13–16 semanas** a tiempo parcial, una persona. Son estimaciones, no
 compromisos.
@@ -171,13 +171,25 @@ remoto Git; se comprobará al publicar el repositorio.
 
 ## F7 — Informes, endurecimiento y despliegue
 
-- [ ] Informe de costes y evolución (ECO-01)
-- [ ] Productos en riesgo por caducidad (ECO-06)
+**Bloque A — informes económicos (ECO-01, ECO-06)**
+
+- [x] Módulo `reporting` de solo lectura con puertos hacia recetas e inventario (ADR-041)
+- [x] Informe de costes por versión publicada con evolución entre versiones (ECO-01)
+- [x] Informe de caducidades con días restantes y valor en riesgo (ECO-06)
+- [x] Tests de dominio, integración y permisos
+- [x] Documentación: arquitectura, ADR-041, memoria y AGENTS.md
+
+**Bloque B — rendimiento, backups y seed**
+
 - [ ] Revisión de rendimiento (NFR-REN-01/02)
 - [ ] Backups documentados y restauración probada (NFR-DIS-02)
-- [ ] Imagen Docker de producción y despliegue (PENDIENTE P1)
 - [ ] Seed de datos demo (PLA-05)
+
+**Bloque C — endurecimiento y despliegue**
+
+- [ ] Imagen Docker de producción y despliegue (PENDIENTE P1)
 - [ ] Revisión de seguridad y de datos personales (NFR-DAT-01)
+- [ ] Cierre documental de F7
 
 ## Fuera de este plan
 

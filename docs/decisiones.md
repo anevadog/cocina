@@ -785,3 +785,34 @@ incidencia nueva, lo que evita reescribir fechas y resoluciones pasadas. La traz
 modelo de producción ni acopla calidad a sus entidades JPA; el precio es una resolución por movimiento
 que se apoya en índices ya existentes y en el número acotado de consumos de un lote. Si en el futuro se
 quiere reabrir, habrá que añadir un histórico de estados y revisar el trigger de cierre.
+
+---
+
+## ADR-041 — Los informes económicos viven en un módulo de solo lectura
+
+**Contexto:** F7 exige el informe de costes por versión (ECO-01) y el de productos en riesgo de
+caducidad con valor estimado (ECO-06). Los datos ya existen: las versiones publicadas guardan el coste
+congelado y los lotes guardan saldo, coste y caducidad. La arquitectura declara un módulo `reporting`
+que aún no tenía código, y los endpoints existentes cubren el detalle de una versión y las alertas
+operativas, pero no una vista agregada con evolución ni un horizonte configurable.
+
+**Opciones:** añadir los informes al módulo que ya tiene los datos (A) · crear `reporting` con puertos de
+lectura hacia recetas e inventario (B) · consultar las tablas con SQL y vistas materializadas (C).
+
+**Decisión:** se crea el módulo `reporting` con un `ReportingService` y dos puertos:
+`RecipeCostCatalog` y `ExpiryRiskCatalog`. Sus adaptadores se apoyan en los repositorios de dominio de
+recetas e inventario, nunca en entidades JPA ajenas, igual que producción (ADR-037). No hay escrituras,
+tablas nuevas ni migración.
+
+El informe de costes lee el coste congelado de cada versión publicada y calcula la variación frente a la
+versión anterior de la misma receta. No recalcula el pasado con el PMP de hoy: el coste actual de una
+versión sigue consultándose en su detalle (`current*`), y el histórico conserva los precios de su
+momento. El informe de caducidades acepta un horizonte de 1 a 90 días (7 por defecto), ordena por
+caducidad y devuelve hasta 500 lotes; `totalLots` y `totalValue` se calculan en SQL sobre todos los
+lotes en riesgo para que el truncado no falsee el total. Ambos endpoints exigen `reporting:read`.
+
+**Consecuencias:** los informes no duplican la aritmética de costes ni pueden desviarse del kardex, y el
+módulo queda preparado para las exportaciones futuras sin acoplar recetas o inventario a la capa web de
+otro dominio. El precio es una consulta agregada más en el puerto de versiones publicadas y otra de
+suma en el de lotes. Si el volumen crece, el siguiente paso natural son vistas de lectura o caché, no
+recalcular en cada petición.

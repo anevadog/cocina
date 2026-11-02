@@ -1,5 +1,6 @@
 package com.killa.cocina.modules.inventory.infrastructure;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -69,4 +70,14 @@ interface StockLotJpaRepository extends JpaRepository<StockLotEntity, Long> {
               and l.expiresAt <= :until
             """)
     long countExpiring(@Param("establishmentId") long establishmentId, @Param("until") java.time.Instant until);
+
+    @Query("""
+            select coalesce(sum(l.remainingQty * l.unitCost), 0)
+            from StockLotEntity l
+            where l.establishmentId = :establishmentId
+              and l.remainingQty > 0
+              and l.expiresAt is not null
+              and l.expiresAt <= :until
+            """)
+    BigDecimal valueExpiring(@Param("establishmentId") long establishmentId, @Param("until") java.time.Instant until);
 }

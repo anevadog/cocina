@@ -14,6 +14,9 @@ public interface RecipeVersionRepository {
     /** Versiones de una receta, de la más reciente a la más antigua. */
     List<RecipeVersion> findByRecipe(long establishmentId, long recipeId);
 
+    /** Versiones publicadas de todo el establecimiento, por receta y número de versión. */
+    List<RecipeVersion> findPublished(long establishmentId);
+
     /** Última versión por número, sea cual sea su estado. */
     Optional<RecipeVersion> latest(long establishmentId, long recipeId);
 

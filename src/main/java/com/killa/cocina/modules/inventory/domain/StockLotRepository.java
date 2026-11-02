@@ -1,5 +1,6 @@
 package com.killa.cocina.modules.inventory.domain;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -30,4 +31,7 @@ public interface StockLotRepository {
     List<ExpiringLotRow> findExpiring(long establishmentId, Instant until, int limit);
 
     long countExpiring(long establishmentId, Instant until);
+
+    /** Valor total al coste del lote de todo lo que caduca antes de {@code until} y aún tiene saldo. */
+    BigDecimal valueExpiring(long establishmentId, Instant until);
 }

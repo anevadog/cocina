@@ -77,6 +77,11 @@ class StockLotRepositoryAdapter implements StockLotRepository {
         return lots.countExpiring(establishmentId, until);
     }
 
+    @Override
+    public BigDecimal valueExpiring(long establishmentId, Instant until) {
+        return lots.valueExpiring(establishmentId, until);
+    }
+
     private static ExpiringLotRow toRow(Object[] row) {
         return new ExpiringLotRow(
                 ((Number) row[0]).longValue(),

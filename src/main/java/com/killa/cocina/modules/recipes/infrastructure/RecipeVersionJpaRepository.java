@@ -15,6 +15,9 @@ interface RecipeVersionJpaRepository extends JpaRepository<RecipeVersionEntity, 
     List<RecipeVersionEntity> findByEstablishmentIdAndRecipeIdOrderByVersionNumberDesc(
             long establishmentId, long recipeId);
 
+    List<RecipeVersionEntity> findByEstablishmentIdAndStatusOrderByRecipeIdAscVersionNumberAsc(
+            long establishmentId, RecipeVersionStatus status);
+
     Optional<RecipeVersionEntity> findFirstByEstablishmentIdAndRecipeIdOrderByVersionNumberDesc(
             long establishmentId, long recipeId);
 

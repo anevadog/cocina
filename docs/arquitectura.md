@@ -434,7 +434,20 @@ La incidencia solo admite `OPEN → IN_PROGRESS`, `OPEN → CLOSED` e `IN_PROGRE
 solo viaja al cerrar y es obligatoria entonces; una incidencia cerrada no se reabre (ADR-040). La
 trazabilidad devuelve la lista vacía para un lote sin consumos y 404 para un lote inexistente.
 
-### 6.5 Auditoría
+### 6.5 Informes agregados
+
+| Endpoint | Permiso | Comportamiento |
+|---|---|---|
+| `GET /api/v1/reports/recipe-costs` | `reporting:read` | Histórico de versiones publicadas con coste congelado, variación frente a la anterior y porcentaje (ECO-01) |
+| `GET /api/v1/reports/expiring-lots?days=7` | `reporting:read` | Lotes que caducan entre 1 y 90 días, con días restantes y valor en riesgo (ECO-06) |
+
+El módulo `reporting` solo lee: dos puertos (`RecipeCostCatalog` y `ExpiryRiskCatalog`) resueltos por
+adaptadores sobre los repositorios de dominio de recetas e inventario, sin tocar entidades JPA ajenas
+(ADR-041). El coste no se recalcula: se lee el congelado al publicar, así una versión antigua conserva
+los precios de su momento. El informe de caducidades devuelve como máximo 500 lotes, pero `totalLots` y
+`totalValue` cuentan todos los que hay en riesgo.
+
+### 6.6 Auditoría
 
 `audit_logs` es append-only: sin endpoint de edición ni borrado. Se registra en la misma transacción
 que la operación auditada, con `actor_id` tomado del token (`CurrentActor`), nunca del cuerpo de la
@@ -445,7 +458,7 @@ cubiertas: `USER_CREATED`, `USER_UPDATED`, `USER_ROLE_CHANGED`, `USER_DEACTIVATE
 `STOCK_PURCHASE_RECORDED`, `STOCK_ADJUSTMENT_RECORDED`, `STOCK_COST_CHANGED`,
 `TEMPERATURE_LOGGED`, `WASTE_RECORDED`, `INCIDENT_OPENED` e `INCIDENT_STATUS_CHANGED`.
 
-### 6.6 Arranque del primer administrador
+### 6.7 Arranque del primer administrador
 
 `AdminBootstrap` garantiza la fila de `establishments` y crea un `ADMIN` solo si no hay ningún usuario
 y existe `BOOTSTRAP_ADMIN_PASSWORD`. Sin contraseña configurada no se crea nada: no hay credenciales
