@@ -158,7 +158,8 @@ valores. Una lectura fuera de rango se guarda; la alerta es su consecuencia.
 
 `waste_records` es la cabecera de la merma: guarda la cantidad total, el PMP aplicado y el coste
 congelado. Cada lote consumido deja su propio `stock_movements` de tipo `WASTE_OUT` con
-`reference_type=waste_record` y el `id` de la cabecera.
+`reference_type=waste_record` y el `id` de la cabecera. La merma consume lotes FIFO o uno concreto y
+**puede retirar lotes caducados**; producción sigue sin consumirlos (ADR-039).
 
 `incidents` no se reabre en el MVP: la restricción `ck_incidents_closure` exige que una incidencia
 `CLOSED` tenga resolución, usuario y fecha de cierre, y que una abierta no los tenga.
@@ -274,6 +275,21 @@ siguiente al último)` en UTC, con el desfase de verano aplicado.
 El informe de consumo resuelve las sumas con SQL agregado y no carga el kardex completo; el de
 desviaciones filtra por `finished_at` en la base y solo carga los batches del periodo (ADR-037).
 
+### 4.8 Merma de calidad
+
+1. Validar producto, cantidad en unidad base (> 0), motivo (5–200 caracteres) y lote opcional.
+2. Abrir transacción; guardar la cabecera provisional con coste cero para obtener su id (ADR-039).
+3. Bloquear el producto y tomar el PMP vigente.
+4. Consumir el lote indicado o los lotes con saldo en orden FIFO, **incluidos los caducados**;
+   insertar un `WASTE_OUT` por lote con su coste y `reference_type=waste_record`.
+5. Si no hay existencias y `allow_negative=false`, responder **409** `INSUFFICIENT_STOCK` y revertir
+   la cabecera.
+6. Actualizar `current_stock`, completar la cabecera con el PMP y auditar `WASTE_RECORDED` con el
+   saldo anterior y posterior.
+
+La merma es la vía para retirar un lote caducado; producción mantiene la prohibición de consumirlo
+(§4.3). El detalle por lote queda en el kardex y la cabecera conserva el coste congelado al PMP.
+
 ## 5. Multi-tenencia
 
 - `establishment_id` en todas las tablas de negocio.
@@ -375,9 +391,16 @@ Los informes aceptan como máximo 31 días naturales y se agrupan por fecha de n
 | `GET /api/v1/temperature-logs` | `quality:read` | Paginado, más reciente primero |
 | `GET /api/v1/temperature-logs/{id}` | `quality:read` | Solo del establecimiento del token |
 | `GET /api/v1/quality/temperature-alerts` | `quality:read` | Lecturas fuera de rango, máximo las 100 más recientes |
+| `POST /api/v1/waste-records` | `quality:write` | Merma en unidad base con lote opcional; descuenta stock y se valora al PMP; 201 |
+| `GET /api/v1/waste-records` | `quality:read` | Paginado, más reciente primero |
+| `GET /api/v1/waste-records/{id}` | `quality:read` | Solo del establecimiento del token |
 
 El rango viaja en cada lectura y `recordedAt` es opcional (por defecto ahora, nunca futura). El actor
 sale del token y queda en la lectura y en la auditoría.
+
+La merma consume el lote indicado o los lotes con saldo en orden FIFO, incluidos los caducados, y puede
+dejar saldo negativo solo si el producto lo permite. La cabecera se valora con el PMP y cada lote
+consumido deja su movimiento `WASTE_OUT` (ADR-039).
 
 ### 6.5 Auditoría
 
@@ -387,8 +410,8 @@ petición. Desde V7 un trigger rechaza `UPDATE` y `DELETE` también por SQL dire
 cubiertas: `USER_CREATED`, `USER_UPDATED`, `USER_ROLE_CHANGED`, `USER_DEACTIVATED`, `LOGIN_FAILED`,
 `REFRESH_TOKEN_REUSED`, `CATEGORY_CREATED`, `CATEGORY_UPDATED`, `PRODUCT_CREATED`, `PRODUCT_UPDATED`,
 `PRODUCT_ARCHIVED`, `PRODUCT_CONVERSIONS_UPDATED`, `SUPPLIER_CREATED`, `SUPPLIER_UPDATED`,
-`STOCK_PURCHASE_RECORDED`, `STOCK_ADJUSTMENT_RECORDED`, `STOCK_COST_CHANGED` y
-`TEMPERATURE_LOGGED`.
+`STOCK_PURCHASE_RECORDED`, `STOCK_ADJUSTMENT_RECORDED`, `STOCK_COST_CHANGED`,
+`TEMPERATURE_LOGGED` y `WASTE_RECORDED`.
 
 ### 6.6 Arranque del primer administrador
 

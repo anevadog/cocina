@@ -160,8 +160,8 @@ remoto Git; se comprobará al publicar el repositorio.
 ## F6 — Calidad y trazabilidad
 
 - [x] Temperaturas con rangos y alertas (CAL-02)
-- [ ] Mermas con coste (CAL-03)
-- [ ] Bloqueo de lotes caducados (CAL-04)
+- [x] Mermas con coste (CAL-03)
+- [x] Bloqueo de lotes caducados (CAL-04)
 - [ ] Incidencias (CAL-05)
 - [ ] Trazabilidad lote → preparación (CAL-01)
 - [ ] Auditoría completa de acciones sensibles (CAL-06)

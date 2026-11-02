@@ -722,3 +722,34 @@ como `TEMPERATURE_LOGGED`.
 coste es que el cliente debe enviar el rango en cada alta y que no se puede cambiar el criterio de una
 lectura ya registrada; se corrige con otra lectura. Las alertas se limitan a las 100 más recientes
 para que la consulta no crezca sin control.
+
+---
+
+## ADR-039 — La merma se valora al PMP y puede retirar lotes caducados
+
+**Contexto:** CAL-03 exige registrar mermas con su coste y CAL-04 impide que un lote caducado se
+consuma en producción. La merma es, precisamente, la vía para sacar del inventario un lote caducado o
+en mal estado; si se le aplicara la misma prohibición que a producción, el stock caducado quedaría
+atrapado y el inventario dejaría de ser real. Además, una merma puede abarcar varios lotes con costes
+distintos y hay que decidir qué coste se congela.
+
+**Opciones:** coste del lote concreto (A) · PMP vigente del producto (B) · coste medio de los lotes
+consumidos (C). Para los caducados: bloquearlos también en la merma (A) o permitir retirarlos (B).
+
+**Decisión:** el coste de la cabecera es el **PMP vigente** del producto en el momento de la merma,
+congelado como `unit_cost` y multiplicado por la cantidad para obtener `cost` (escala 4, ADR-021). Cada
+lote consumido deja su propio movimiento `WASTE_OUT` con el coste de ese lote, de modo que el kardex
+sigue siendo reconstruible aunque la cabecera use el PMP. La merma consume el lote indicado o, sin
+lote, los lotes con saldo en orden FIFO **incluidos los caducados**; producción mantiene
+`findUsable`, que los excluye. Si el producto no permite saldo negativo y no hay existencias
+suficientes, responde 409 `INSUFFICIENT_STOCK` sin escribir nada.
+
+Para obtener el id que referencian los movimientos, la cabecera se inserta provisionalmente con coste
+cero y se completa con el PMP en la misma transacción; un fallo de stock revierte también la cabecera.
+La operación se audita como `WASTE_RECORDED` con el stock anterior y posterior.
+
+**Consecuencias:** el coste de la merma es comparable con el resto de valoraciones del producto y no
+depende de qué lote eligió el FIFO, mientras el kardex conserva el detalle real por lote. Se acepta la
+inserción provisional a cambio de no inventar un identificador en la aplicación. Un lote caducado ya no
+queda atrapado en el inventario: se retira con merma, que es justo la operación que CAL-04 quiere dejar
+registrada.

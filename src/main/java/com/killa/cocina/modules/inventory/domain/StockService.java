@@ -34,6 +34,27 @@ public interface StockService {
             long establishmentId, Long actorId, long batchId, Map<Long, BigDecimal> requirements, Instant occurredAt);
 
     /**
+     * Descuento atómico por merma (CAL-03, CAL-04).
+     *
+     * <p>Consume el lote indicado o, si no se indica, los lotes con saldo en orden FIFO. A
+     * diferencia de producción, <strong>sí puede retirar lotes caducados</strong>: la merma es la vía
+     * para sacarlos del inventario. La cabecera se valora al PMP vigente; cada movimiento
+     * {@code WASTE_OUT} conserva el coste de su lote.</p>
+     *
+     * @param quantityBase cantidad en unidad base del producto
+     * @param wasteRecordId cabecera de merma a la que referencian los movimientos
+     */
+    WasteConsumption consumeForWaste(
+            long establishmentId,
+            Long actorId,
+            long productId,
+            Long lotId,
+            BigDecimal quantityBase,
+            long wasteRecordId,
+            String reason,
+            Instant occurredAt);
+
+    /**
      * Consumo real de producción por producto para unos batches (ECO-03).
      *
      * <p>Suma los movimientos {@code PRODUCTION_OUT} referenciados por los batches; el resultado está

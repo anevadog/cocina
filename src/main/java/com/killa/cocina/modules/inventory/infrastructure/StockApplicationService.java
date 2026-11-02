@@ -21,6 +21,7 @@ import com.killa.cocina.modules.inventory.domain.StockMovementRepository;
 import com.killa.cocina.modules.inventory.domain.StockService;
 import com.killa.cocina.modules.inventory.domain.UnitConversion;
 import com.killa.cocina.modules.inventory.domain.Valuation;
+import com.killa.cocina.modules.inventory.domain.WasteConsumption;
 import com.killa.cocina.modules.suppliers.domain.Supplier;
 import com.killa.cocina.modules.suppliers.domain.SupplierRepository;
 import com.killa.cocina.shared.error.ApiError;
@@ -62,6 +63,9 @@ public class StockApplicationService implements StockService {
 
     /** Referencia del kardex hacia el batch de producción que originó el consumo. */
     private static final String PRODUCTION_REFERENCE = "production_batch";
+
+    /** Referencia del kardex hacia la cabecera de merma. */
+    private static final String WASTE_REFERENCE = "waste_record";
 
     private final ProductRepository products;
 
@@ -347,6 +351,152 @@ public class StockApplicationService implements StockService {
                 null,
                 PRODUCTION_REFERENCE,
                 batchId,
+                actor,
+                occurredAt);
+    }
+
+    @Override
+    public WasteConsumption consumeForWaste(
+            long establishmentId,
+            Long actorId,
+            long productId,
+            Long lotId,
+            BigDecimal quantityBase,
+            long wasteRecordId,
+            String reason,
+            Instant occurredAt) {
+        long actor = requireActor(actorId);
+        if (occurredAt == null) {
+            throw new ApiException(
+                    ErrorCode.VALIDATION_ERROR,
+                    "La petición contiene datos no válidos.",
+                    List.of(new ApiError.FieldViolation("occurredAt", "es obligatorio")));
+        }
+        BigDecimal quantity = Quantities.stock(quantityBase);
+        if (quantity == null || quantity.signum() <= 0) {
+            throw new ApiException(
+                    ErrorCode.VALIDATION_ERROR,
+                    "La petición contiene datos no válidos.",
+                    List.of(new ApiError.FieldViolation("quantityBase", "debe ser mayor que cero")));
+        }
+
+        Product product = requireActiveForUpdate(establishmentId, productId);
+        BigDecimal unitCost = product.currentAvgCost();
+        BigDecimal stockBefore = product.currentStock();
+
+        List<StockLot> candidates;
+        if (lotId == null) {
+            candidates = lots.findConsumable(establishmentId, productId);
+        } else {
+            StockLot lot = lots.findById(establishmentId, lotId)
+                    .orElseThrow(
+                            () -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "El lote " + lotId + " no existe."));
+            if (lot.productId() != productId) {
+                throw new ApiException(
+                        ErrorCode.VALIDATION_ERROR,
+                        "La petición contiene datos no válidos.",
+                        List.of(new ApiError.FieldViolation("lotId", "no pertenece al producto indicado")));
+            }
+            if (lot.remainingQty().signum() <= 0) {
+                throw new ApiException(
+                        ErrorCode.VALIDATION_ERROR,
+                        "La petición contiene datos no válidos.",
+                        List.of(new ApiError.FieldViolation("lotId", "no tiene saldo disponible")));
+            }
+            candidates = List.of(lot);
+        }
+
+        BigDecimal available = candidates.stream().map(StockLot::remainingQty).reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (available.compareTo(quantity) < 0 && !product.allowNegative()) {
+            throw new ApiException(
+                    ErrorCode.INSUFFICIENT_STOCK,
+                    "No hay stock suficiente de '" + product.name() + "' para la merma: se necesitan "
+                            + quantity.toPlainString() + " "
+                            + product.baseUnit().label() + " y hay "
+                            + available.toPlainString() + ".");
+        }
+
+        BigDecimal remaining = quantity;
+        BigDecimal balance = stockBefore;
+        for (StockLot lot : candidates) {
+            if (remaining.signum() <= 0) {
+                break;
+            }
+            BigDecimal taken = remaining.min(lot.remainingQty());
+            lots.save(lot.consume(taken));
+            balance = Quantities.stock(balance.subtract(taken));
+            movements.save(wasteMovement(
+                    establishmentId,
+                    productId,
+                    lot.id(),
+                    taken,
+                    lot.unitCost(),
+                    balance,
+                    reason,
+                    wasteRecordId,
+                    actor,
+                    occurredAt));
+            remaining = remaining.subtract(taken);
+        }
+        if (remaining.signum() > 0) {
+            // El producto admite negativo o los lotes no cuadran con current_stock; se deja rastro
+            // igual que en un ajuste manual.
+            log.warn(
+                    "Merma sin lotes suficientes [establishmentId={}, productId={}, wasteRecordId={}, "
+                            + "cantidad sin lote={}]",
+                    establishmentId,
+                    productId,
+                    wasteRecordId,
+                    remaining.toPlainString());
+            balance = Quantities.stock(balance.subtract(remaining));
+            movements.save(wasteMovement(
+                    establishmentId,
+                    productId,
+                    null,
+                    remaining,
+                    unitCost,
+                    balance,
+                    reason,
+                    wasteRecordId,
+                    actor,
+                    occurredAt));
+        }
+
+        products.save(product.withStock(balance, product.currentAvgCost(), Instant.now(clock)));
+        return new WasteConsumption(
+                productId,
+                product.name(),
+                quantity,
+                unitCost,
+                Quantities.cost(quantity.multiply(unitCost)),
+                stockBefore,
+                balance,
+                product.currentAvgCost());
+    }
+
+    private static StockMovement wasteMovement(
+            long establishmentId,
+            long productId,
+            Long lotId,
+            BigDecimal quantity,
+            BigDecimal unitCost,
+            BigDecimal balanceAfter,
+            String reason,
+            long wasteRecordId,
+            long actor,
+            Instant occurredAt) {
+        return new StockMovement(
+                null,
+                establishmentId,
+                productId,
+                lotId,
+                MovementType.WASTE_OUT,
+                quantity,
+                unitCost,
+                balanceAfter,
+                reason,
+                WASTE_REFERENCE,
+                wasteRecordId,
                 actor,
                 occurredAt);
     }
