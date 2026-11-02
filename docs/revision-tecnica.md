@@ -16,8 +16,9 @@ Tres cosas que conviene saber antes de empezar:
   aplicación. Un revisor no encontrará pantallas de negocio.
 - **Un solo establecimiento activo**, pero el modelo lleva `establishment_id` desde la primera
   migración.
-- **El repositorio es local**: no hay remoto configurado. Los commits no se han publicado en ningún
-  sitio.
+- **Repositorio privado en GitHub**: `origin` → <https://github.com/anevadog/cocina>. Para revisarlo hay
+  que pedir acceso o clonarlo con una cuenta autorizada; el CI de GitHub Actions se ejecuta en cada
+  push a `main`.
 
 ## 2. Revisión en cuatro pasos
 
