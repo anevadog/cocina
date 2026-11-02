@@ -134,13 +134,26 @@ remoto Git; se comprobará al publicar el repositorio.
 
 ## F5 — Producción
 
-- [ ] Plan diario por servicio (PRD-01)
-- [ ] Necesidades agregadas (PRD-02)
-- [ ] Registro de producción con descuento transaccional (REC-06, PRD-03)
-- [ ] Máquina de estados (PRD-04)
-- [ ] Desviaciones con motivo (PRD-05)
-- [ ] Consumo teórico vs real (ECO-03)
-- [ ] Test: producción cancelada no descuenta; fallo parcial no deja rastro
+**Bloque A — esquema y planificación (PRD-01, PRD-02)**
+
+- [x] Plan diario por fecha y servicio, sin duplicados (PRD-01)
+- [x] Ítems sobre versiones publicadas y edición solo en `PENDING`
+- [x] Necesidades agregadas por producto con un único redondeo (PRD-02)
+- [x] Tests de plan, duplicados, versiones no publicadas y agregación
+
+**Bloque B — ejecución y descuento transaccional (REC-06, PRD-03, PRD-04)**
+
+- [ ] Batch, máquina de estados y transiciones válidas (PRD-04)
+- [ ] Descuento atómico al pasar a `READY`, con productos bloqueados en orden
+- [ ] Cancelación sin descuento y corrección tras `READY` solo por ajuste
+- [ ] Fallo parcial sin rastro y concurrencia sin sobreventa
+- [ ] Lotes caducados fuera del consumo de producción
+
+**Bloque C — desviaciones y consumo (PRD-05, ECO-03)**
+
+- [ ] Desviación previsto vs real con motivo obligatorio (PRD-05)
+- [ ] Consumo teórico vs real por producto (ECO-03)
+- [ ] Documentación: arquitectura, ADR-036 y ADR-037, memoria y AGENTS.md
 
 ## F6 — Calidad y trazabilidad
 

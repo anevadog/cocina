@@ -134,10 +134,11 @@ publicar. La inmutabilidad se protege con triggers, igual que el kardex.
 |---|---|
 | `production_plans` | `id`, `establishment_id`, `service_date`, `service_type`, `status` |
 | `production_plan_items` | `id`, `plan_id`, `recipe_version_id`, `planned_rations` |
-| `production_batches` | `id`, `establishment_id`, `plan_item_id`, `recipe_version_id`, `rations`, `status`, `started_at`, `finished_at`, `actor_id`, `deviation_reason` |
+| `production_batches` | `id`, `establishment_id`, `plan_item_id`, `recipe_version_id`, `planned_rations`, `rations`, `status`, `started_at`, `started_by`, `finished_at`, `finished_by`, `deviation_reason` |
 
 `service_type`: `LUNCH`, `DINNER`. `status`: `PENDING`, `IN_PROGRESS`, `READY`, `SERVED`,
-`CANCELLED`.
+`CANCELLED`. En el MVP hay un único batch por ítem de plan; el estado del plan se recalcula desde
+sus batches.
 
 ### 3.5 Calidad
 

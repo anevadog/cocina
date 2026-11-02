@@ -35,14 +35,21 @@ public final class RecipeExpansion {
      * (ADR-033). 250 g al 0 % para 3 raciones son 750,000 g.</p>
      */
     public static BigDecimal consumption(BigDecimal quantityBase, BigDecimal wastePct, int rations) {
+        return consumptionExact(quantityBase, wastePct, rations).setScale(Quantities.STOCK_SCALE, Quantities.ROUNDING);
+    }
+
+    /**
+     * Consumo exacto, sin redondear, para agregar varios ítems antes de redondear una sola vez.
+     *
+     * <p>Es la pieza que usa F5 para sumar las necesidades de un plan por producto (ADR-036): si se
+     * redondeara cada línea, dos recetas podrían dar un total distinto al de la suma real.</p>
+     */
+    public static BigDecimal consumptionExact(BigDecimal quantityBase, BigDecimal wastePct, int rations) {
         if (rations < 1) {
             throw new IllegalArgumentException("las raciones deben ser al menos 1");
         }
         BigDecimal waste = wastePct == null ? BigDecimal.ZERO : wastePct;
-        return quantityBase
-                .multiply(BigDecimal.ONE.add(waste.movePointLeft(2)))
-                .multiply(BigDecimal.valueOf(rations))
-                .setScale(Quantities.STOCK_SCALE, Quantities.ROUNDING);
+        return quantityBase.multiply(BigDecimal.ONE.add(waste.movePointLeft(2))).multiply(BigDecimal.valueOf(rations));
     }
 
     /** Coste de una ración con los costes unitarios indicados, redondeado a 4 decimales. */

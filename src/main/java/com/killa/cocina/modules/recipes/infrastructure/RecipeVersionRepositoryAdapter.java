@@ -24,6 +24,11 @@ class RecipeVersionRepositoryAdapter implements RecipeVersionRepository {
     }
 
     @Override
+    public Optional<RecipeVersion> findById(long establishmentId, long versionId) {
+        return versions.findByIdAndEstablishmentId(versionId, establishmentId).map(RecipeVersionEntity::toDomain);
+    }
+
+    @Override
     public List<RecipeVersion> findByRecipe(long establishmentId, long recipeId) {
         return versions.findByEstablishmentIdAndRecipeIdOrderByVersionNumberDesc(establishmentId, recipeId).stream()
                 .map(RecipeVersionEntity::toDomain)

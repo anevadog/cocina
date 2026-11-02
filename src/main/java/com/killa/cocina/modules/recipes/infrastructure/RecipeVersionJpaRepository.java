@@ -10,6 +10,8 @@ interface RecipeVersionJpaRepository extends JpaRepository<RecipeVersionEntity, 
 
     Optional<RecipeVersionEntity> findByIdAndEstablishmentIdAndRecipeId(long id, long establishmentId, long recipeId);
 
+    Optional<RecipeVersionEntity> findByIdAndEstablishmentId(long id, long establishmentId);
+
     List<RecipeVersionEntity> findByEstablishmentIdAndRecipeIdOrderByVersionNumberDesc(
             long establishmentId, long recipeId);
 
