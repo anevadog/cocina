@@ -17,7 +17,7 @@ fail() {
 }
 
 # 1. Ficheros .env versionados: solo se permiten las plantillas.
-versioned_env="$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '\.env\.example$|\.env\.production\.example$' || true)"
+versioned_env="$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '\.env\.example$|\.env\.production\.example$|\.env\.demo\.example$' || true)"
 if [ -n "$versioned_env" ]; then
     fail "hay ficheros .env versionados:"
     echo "$versioned_env" >&2
