@@ -1,10 +1,15 @@
 package com.killa.cocina.modules.inventory.infrastructure;
 
+import com.killa.cocina.modules.inventory.domain.MovementType;
 import com.killa.cocina.modules.inventory.domain.StockMovement;
 import com.killa.cocina.modules.inventory.domain.StockMovementRepository;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
@@ -41,5 +46,32 @@ class StockMovementRepositoryAdapter implements StockMovementRepository {
     @Override
     public long countByProduct(long establishmentId, long productId) {
         return movements.countByEstablishmentIdAndProductId(establishmentId, productId);
+    }
+
+    @Override
+    public Map<Long, BigDecimal> productionOutByBatches(long establishmentId, Collection<Long> batchIds) {
+        if (batchIds == null || batchIds.isEmpty()) {
+            return Map.of();
+        }
+        return toMap(movements.sumProductionOutByBatches(establishmentId, MovementType.PRODUCTION_OUT, batchIds));
+    }
+
+    @Override
+    public Map<Long, BigDecimal> netAdjustmentOutflow(
+            long establishmentId, Instant fromInclusive, Instant toExclusive) {
+        return toMap(movements.sumNetAdjustments(
+                establishmentId,
+                MovementType.ADJUSTMENT_OUT,
+                List.of(MovementType.ADJUSTMENT_IN, MovementType.ADJUSTMENT_OUT),
+                fromInclusive,
+                toExclusive));
+    }
+
+    private static Map<Long, BigDecimal> toMap(List<Object[]> rows) {
+        Map<Long, BigDecimal> values = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            values.put((Long) row[0], (BigDecimal) row[1]);
+        }
+        return values;
     }
 }

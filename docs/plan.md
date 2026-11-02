@@ -151,9 +151,11 @@ remoto Git; se comprobará al publicar el repositorio.
 
 **Bloque C — desviaciones y consumo (PRD-05, ECO-03)**
 
-- [ ] Desviación previsto vs real con motivo obligatorio (PRD-05)
-- [ ] Consumo teórico vs real por producto (ECO-03)
-- [ ] Documentación: arquitectura, ADR-036 y ADR-037, memoria y AGENTS.md
+- [x] Desviación previsto vs real con motivo obligatorio (PRD-05)
+- [x] Consumo teórico vs real por producto (ECO-03)
+- [x] Documentación: arquitectura, ADR-036 y ADR-037, memoria y AGENTS.md
+
+**Fase cerrada.**
 
 ## F6 — Calidad y trazabilidad
 
@@ -166,7 +168,7 @@ remoto Git; se comprobará al publicar el repositorio.
 
 ## F7 — Informes, endurecimiento y despliegue
 
-- [ ] Informe de costes y evolución (ECO-01, ECO-03)
+- [ ] Informe de costes y evolución (ECO-01)
 - [ ] Productos en riesgo por caducidad (ECO-06)
 - [ ] Revisión de rendimiento (NFR-REN-01/02)
 - [ ] Backups documentados y restauración probada (NFR-DIS-02)

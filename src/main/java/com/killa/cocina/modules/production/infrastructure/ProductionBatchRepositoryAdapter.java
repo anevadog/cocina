@@ -2,6 +2,7 @@ package com.killa.cocina.modules.production.infrastructure;
 
 import com.killa.cocina.modules.production.domain.ProductionBatch;
 import com.killa.cocina.modules.production.domain.ProductionBatchRepository;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +34,13 @@ class ProductionBatchRepositoryAdapter implements ProductionBatchRepository {
             return List.of();
         }
         return batches.findByPlanItemIdInOrderByIdAsc(planItemIds).stream()
+                .map(ProductionBatchEntity::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<ProductionBatch> findFinishedBetween(long establishmentId, Instant fromInclusive, Instant toExclusive) {
+        return batches.findFinishedBetween(establishmentId, fromInclusive, toExclusive).stream()
                 .map(ProductionBatchEntity::toDomain)
                 .toList();
     }

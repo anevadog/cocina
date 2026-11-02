@@ -32,6 +32,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -348,6 +349,25 @@ public class StockApplicationService implements StockService {
                 batchId,
                 actor,
                 occurredAt);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, BigDecimal> productionConsumption(long establishmentId, Collection<Long> batchIds) {
+        return movements.productionOutByBatches(establishmentId, batchIds);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, BigDecimal> netAdjustmentOutflow(
+            long establishmentId, Instant fromInclusive, Instant toExclusive) {
+        if (fromInclusive == null || toExclusive == null || !fromInclusive.isBefore(toExclusive)) {
+            throw new ApiException(
+                    ErrorCode.VALIDATION_ERROR,
+                    "La petición contiene datos no válidos.",
+                    List.of(new ApiError.FieldViolation("from", "debe ser anterior a to")));
+        }
+        return movements.netAdjustmentOutflow(establishmentId, fromInclusive, toExclusive);
     }
 
     @Override

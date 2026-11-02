@@ -48,6 +48,24 @@ class ProductionExpansionTest {
     }
 
     @Test
+    @DisplayName("ECO-03: el consumo teórico ignora la merma y redondea una sola vez")
+    void elConsumoTeoricoIgnoraLaMerma() {
+        ProductionCompositionItem item =
+                new ProductionCompositionItem(10L, new BigDecimal("0.001"), new BigDecimal("50"));
+
+        Map<Long, BigDecimal> theoretical = ProductionExpansion.theoreticalByProduct(List.of(
+                new ProductionExpansion.PlanLine(List.of(item), 1),
+                new ProductionExpansion.PlanLine(List.of(item), 1)));
+        Map<Long, BigDecimal> withWaste = ProductionExpansion.consumptionByProduct(List.of(
+                new ProductionExpansion.PlanLine(List.of(item), 1),
+                new ProductionExpansion.PlanLine(List.of(item), 1)));
+
+        // Sin merma son 0,001 + 0,001 = 0,002; con merma del 50 %, 0,0015 + 0,0015 = 0,003.
+        assertThat(theoretical.get(10L)).isEqualByComparingTo("0.002");
+        assertThat(withWaste.get(10L)).isEqualByComparingTo("0.003");
+    }
+
+    @Test
     @DisplayName("Un plan sin ítems no inventa necesidades")
     void unPlanVacioNoTieneNecesidades() {
         assertThat(ProductionExpansion.consumptionByProduct(List.of())).isEmpty();

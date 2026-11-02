@@ -3,6 +3,7 @@ package com.killa.cocina.modules.inventory.domain;
 import com.killa.cocina.shared.pagination.PageResult;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -31,6 +32,22 @@ public interface StockService {
      */
     void consumeForProduction(
             long establishmentId, Long actorId, long batchId, Map<Long, BigDecimal> requirements, Instant occurredAt);
+
+    /**
+     * Consumo real de producción por producto para unos batches (ECO-03).
+     *
+     * <p>Suma los movimientos {@code PRODUCTION_OUT} referenciados por los batches; el resultado está
+     * en unidad base y no incluye ajustes manuales.</p>
+     */
+    Map<Long, BigDecimal> productionConsumption(long establishmentId, Collection<Long> batchIds);
+
+    /**
+     * Ajustes netos de salida por producto en {@code [fromInclusive, toExclusive)} (ECO-03).
+     *
+     * <p>Las salidas suman y las entradas restan: un valor positivo indica consumo neto por ajuste.
+     * Solo considera {@code ADJUSTMENT_IN} y {@code ADJUSTMENT_OUT}, no compras ni producción.</p>
+     */
+    Map<Long, BigDecimal> netAdjustmentOutflow(long establishmentId, Instant fromInclusive, Instant toExclusive);
 
     PageResult<StockMovement> movements(long establishmentId, long productId, int page, int size);
 

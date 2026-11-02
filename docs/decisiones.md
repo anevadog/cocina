@@ -40,6 +40,8 @@ Una entrada por decisión con contexto, opciones, decisión y consecuencias. Est
 | ADR-033 | Cantidad por ración, merma aditiva y un único redondeo al escalar | Aceptada |
 | ADR-034 | Borrador editable y versión publicada inmutable | Aceptada |
 | ADR-035 | El coste se congela con los productos bloqueados en orden | Aceptada |
+| ADR-036 | Plan por servicio, batch por ítem y estado derivado | Aceptada |
+| ADR-037 | Puertos de producción, bloqueo ordenado e informes de consumo | Aceptada |
 
 ---
 
@@ -622,4 +624,77 @@ de producción de F5 (arquitectura §4.3), así que no hay dos políticas de blo
 interbloquean. El precio a pagar es que publicar bloquea durante un instante los productos de la receta
 —aceptable porque publicar es una acción poco frecuente y de una sola persona— y no se puede publicar
 mientras una compra mantiene el lock de un producto de esa receta: la segunda espera, no falla.
+
+---
+
+## ADR-036 — Plan por servicio, batch por ítem y estado derivado
+
+**Contexto:** la producción se planifica para una fecha y un servicio, pero la ejecución real puede
+empezar, terminar con menos raciones o cancelarse. Si el plan fuera también el registro de ejecución,
+una corrección obligaría a reescribir el plan y se perdería el histórico. Si el estado del plan se
+escribiera a mano, podría contradecir a sus ejecuciones.
+
+**Opciones:** un único registro que cambia de estado (A) · plan de solo planificación y un batch de
+ejecución por ítem (B) · varios batches simultáneos por ítem desde el MVP (C).
+
+**Decisión:** (B). Un `production_plan` es único por `(establishment_id, service_date, service_type)`
+e incluye ítems que fijan una versión **publicada** y las raciones previstas. Cada ítem tiene como
+máximo un `production_batch` en el MVP. El batch nace en `IN_PROGRESS`; puede pasar a `READY` con las
+raciones reales o a `CANCELLED`, y un `READY` puede pasar a `SERVED`. El stock se descuenta **solo** en
+la transición a `READY`; cancelar no descuenta y, una vez listo, la corrección se hace con un ajuste,
+no reescribiendo el batch. Si las raciones reales difieren de las previstas, el motivo es obligatorio
+(5–200 caracteres) y se guarda con el batch.
+
+El estado del plan (`PENDING`, `IN_PROGRESS`, `READY`, `SERVED`, `CANCELLED`) se recalcula desde sus
+batches y se persiste como valor de filtro. Los ítems solo se sustituyen, y el plan solo se cancela o
+borra, mientras está `PENDING`; los triggers de V6 congelan un ítem en cuanto tiene un batch y rechazan
+borrar batches o modificar uno terminado salvo el paso `READY → SERVED`.
+
+**Consecuencias:** el plan y la ejecución tienen responsabilidades separadas, el histórico es
+reproducible y la base de datos impide estados imposibles. El coste es que el MVP no permite repetir
+un mismo ítem en varios batches ni añadir ítems a un plan ya iniciado; ambas cosas pueden evolucionar
+sin cambiar el modelo, porque el batch ya es la unidad de ejecución.
+
+---
+
+## ADR-037 — Puertos de producción, bloqueo ordenado e informes de consumo
+
+**Contexto:** producción necesita leer recetas y productos y descontar stock. Si importara sus
+entidades JPA, rompería las fronteras modulares (AGENTS.md §6). Además, una ejecución toca varios
+productos y dos ejecuciones simultáneas podrían interbloquearse o sobrevender. Los informes deben
+comparar el consumo teórico con el real sin cargar el kardex completo.
+
+**Opciones:** llamar directamente a los repositorios JPA de recetas e inventario (A) · puertos de
+dominio con adaptadores en infraestructura (B) · duplicar los datos necesarios en producción (C).
+
+**Decisión:** (B). Producción define `RecipeCompositionCatalog` y `ProductCatalog`, implementados por
+adaptadores que usan los puertos publicados de recetas e inventario. El descuento se delega en
+`StockService.consumeForProduction`, que recibe el mapa de necesidades por producto y bloquea los
+productos en orden ascendente de `product_id` antes de consumir lotes vigentes FIFO; un lote caducado
+no se consume y un fallo de cualquier ingrediente revierte el batch completo. Los movimientos son
+`PRODUCTION_OUT`, con `reference_type=production_batch` y `reference_id` del batch.
+
+Los informes viven en el módulo `production` y son de solo lectura. El periodo se expresa en días de
+negocio de `Europe/Madrid`, con un máximo de 31 días. El informe de desviaciones agrupa por el
+`finished_at` del batch y solo lista desviaciones distintas de cero. El de consumo calcula, por
+producto:
+
+```text
+teórico   = Σ cantidad_por_ración × raciones_reales          (sin merma, un solo redondeo)
+producción = Σ PRODUCTION_OUT de los batches del periodo
+merma      = producción − teórico
+ajustes    = Σ ADJUSTMENT_OUT − Σ ADJUSTMENT_IN del periodo
+real       = producción + ajustes
+desviación = real − teórico = merma + ajustes
+```
+
+La comparación usa el consumo real de los batches terminados en el periodo y los ajustes por su
+`occurred_at`, de modo que ambos caen en la misma ventana. Los informes no crean un módulo `reporting`
+nuevo: reutilizan los puertos de producción e inventario y no escriben nada.
+
+**Consecuencias:** las fronteras se verifican con ArchUnit, el orden de bloqueo es único en todo el
+sistema y los informes cuadran por construcción. El coste es una consulta agregada de consumo y una
+lectura filtrada de batches para desviaciones; además, la merma mostrada incluye el efecto del
+redondeo de la expansión. Se acepta porque es la misma cifra que se descontó del stock y queda
+documentada.
 

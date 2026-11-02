@@ -20,6 +20,22 @@ interface ProductionBatchJpaRepository extends JpaRepository<ProductionBatchEnti
 
     List<ProductionBatchEntity> findByPlanItemIdInOrderByIdAsc(Collection<Long> planItemIds);
 
+    /**
+     * Batches terminados en el intervalo. {@code finished_at} solo existe en {@code READY} y
+     * {@code SERVED}, así que el filtro temporal excluye por sí solo los que no consumieron stock.
+     */
+    @Query("""
+            select b from ProductionBatchEntity b
+            where b.establishmentId = :establishmentId
+              and b.finishedAt >= :fromInclusive
+              and b.finishedAt < :toExclusive
+            order by b.finishedAt asc, b.id asc
+            """)
+    List<ProductionBatchEntity> findFinishedBetween(
+            @Param("establishmentId") long establishmentId,
+            @Param("fromInclusive") java.time.Instant fromInclusive,
+            @Param("toExclusive") java.time.Instant toExclusive);
+
     Optional<ProductionBatchEntity> findByPlanItemId(long planItemId);
 
     boolean existsByPlanItemId(long planItemId);

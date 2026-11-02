@@ -1,5 +1,6 @@
 package com.killa.cocina.modules.production.domain;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +14,9 @@ public interface ProductionBatchRepository {
     Optional<ProductionBatch> findByIdForUpdate(long establishmentId, long batchId);
 
     List<ProductionBatch> findByPlanItems(Collection<Long> planItemIds);
+
+    /** Batches terminados en el intervalo {@code [from, to)}, para los informes (PRD-05, ECO-03). */
+    List<ProductionBatch> findFinishedBetween(long establishmentId, Instant fromInclusive, Instant toExclusive);
 
     Optional<ProductionBatch> findByPlanItem(long planItemId);
 

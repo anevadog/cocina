@@ -34,6 +34,27 @@ public final class ProductionExpansion {
         return rounded;
     }
 
+    /**
+     * Consumo teórico por producto, sin merma, con un solo redondeo (ECO-03).
+     *
+     * <p>Es la referencia contra la que se compara el consumo real: la receta dice cuánto debería
+     * salir de stock para las raciones producidas. La diferencia con el consumo real incluye la
+     * merma aplicada en la expansión, y los ajustes manuales se suman aparte en el informe.</p>
+     */
+    public static Map<Long, BigDecimal> theoreticalByProduct(List<PlanLine> lines) {
+        Map<Long, BigDecimal> exact = new LinkedHashMap<>();
+        for (PlanLine line : lines) {
+            int rations = ProductionLimits.rations(line.rations(), "rations");
+            for (ProductionCompositionItem item : line.items()) {
+                BigDecimal consumption = item.quantityBase().multiply(BigDecimal.valueOf(rations));
+                exact.merge(item.productId(), consumption, BigDecimal::add);
+            }
+        }
+        Map<Long, BigDecimal> rounded = new LinkedHashMap<>();
+        exact.forEach((productId, quantity) -> rounded.put(productId, Quantities.stock(quantity)));
+        return rounded;
+    }
+
     /** Composición de un ítem y las raciones para las que se expande. */
     public record PlanLine(List<ProductionCompositionItem> items, int rations) {
 

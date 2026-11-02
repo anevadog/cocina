@@ -132,13 +132,16 @@ publicar. La inmutabilidad se protege con triggers, igual que el kardex.
 
 | Tabla | Campos principales |
 |---|---|
-| `production_plans` | `id`, `establishment_id`, `service_date`, `service_type`, `status` |
-| `production_plan_items` | `id`, `plan_id`, `recipe_version_id`, `planned_rations` |
-| `production_batches` | `id`, `establishment_id`, `plan_item_id`, `recipe_version_id`, `planned_rations`, `rations`, `status`, `started_at`, `started_by`, `finished_at`, `finished_by`, `deviation_reason` |
+| `production_plans` | `id`, `establishment_id`, `service_date`, `service_type`, `status`, `created_by`, `created_at`, `updated_at` |
+| `production_plan_items` | `id`, `establishment_id`, `plan_id`, `recipe_version_id`, `planned_rations` |
+| `production_batches` | `id`, `establishment_id`, `plan_item_id`, `recipe_version_id`, `planned_rations`, `rations`, `status`, `started_at`, `started_by`, `finished_at`, `finished_by`, `deviation_reason`, `created_at` |
 
-`service_type`: `LUNCH`, `DINNER`. `status`: `PENDING`, `IN_PROGRESS`, `READY`, `SERVED`,
-`CANCELLED`. En el MVP hay un único batch por ítem de plan; el estado del plan se recalcula desde
-sus batches.
+`service_type`: `LUNCH`, `DINNER`. Estado del plan: `PENDING`, `IN_PROGRESS`, `READY`, `SERVED`,
+`CANCELLED`; estado del batch: `IN_PROGRESS`, `READY`, `SERVED`, `CANCELLED`. En el MVP hay un único
+batch por ítem de plan (`uk_production_batches_item`) y el estado del plan se recalcula desde sus
+batches. El plan es único por establecimiento, fecha y servicio, y sus ítems solo admiten versiones
+**publicadas**. Un ítem con batch no se modifica ni se borra, y un batch terminado solo puede pasar de
+`READY` a `SERVED`; los triggers de V6 lo impiden también por SQL (ADR-036).
 
 ### 3.5 Calidad
 
@@ -241,6 +244,24 @@ ingredientes a N raciones, devuelve el coste del lote y **no** congela nada. La 
 (`yield_pct`) es informativo y no altera el coste. La misma expansión alimenta el descuento de
 producción de F5, agregando por producto.
 
+### 4.7 Informes de producción
+
+Los dos informes son de solo lectura, exigen `from` y `to` (días de negocio en `Europe/Madrid`) y
+rechazan periodos de más de 31 días. La ventana se traduce a `[00:00 del primer día, 00:00 del día
+siguiente al último)` en UTC, con el desfase de verano aplicado.
+
+- **Desviaciones (PRD-05).** Toma los batches con `finished_at` dentro del periodo y devuelve solo los
+  que tienen `rations ≠ planned_rations`, con plan, servicio, receta, versión, raciones, motivo y
+  responsable. Una ejecución sin desviación no aparece.
+- **Consumo teórico vs real (ECO-03).** Por cada batch terminado, expande la versión usada con las
+  raciones reales **sin merma** y agrega por producto con un único redondeo. El consumo real son los
+  movimientos `PRODUCTION_OUT` de esos batches; los ajustes son
+  `ADJUSTMENT_OUT − ADJUSTMENT_IN` del periodo. Así `desviación = merma + ajustes` y el informe
+  explica la diferencia entre lo que dicta la receta y lo que salió del stock.
+
+El informe de consumo resuelve las sumas con SQL agregado y no carga el kardex completo; el de
+desviaciones filtra por `finished_at` en la base y solo carga los batches del periodo (ADR-037).
+
 ## 5. Multi-tenencia
 
 - `establishment_id` en todas las tablas de negocio.
@@ -313,7 +334,28 @@ activos.
 | `GET /api/v1/products/{id}/lots` | `inventory:read` | Lotes y saldo restante, paginado |
 | `GET /api/v1/inventory/alerts` | `inventory:read` | Stock bajo mínimo y caducidad próxima con valor en riesgo |
 
-### 6.3 Auditoría
+### 6.3 Producción e informes
+
+| Método y ruta | Permiso | Notas |
+|---|---|---|
+| `GET /api/v1/production-plans` | `production:read` | Paginado; filtros por fecha y estado |
+| `POST /api/v1/production-plans` | `production:write` | Un plan por fecha y servicio; duplicado → 409 `RESOURCE_IN_USE` |
+| `GET /api/v1/production-plans/{id}` | `production:read` | Plan, ítems y estado derivado |
+| `PATCH /api/v1/production-plans/{id}` | `production:write` | Solo con el plan en `PENDING` |
+| `DELETE /api/v1/production-plans/{id}` | `production:write` | Solo `PENDING` y sin ejecuciones; 204 |
+| `PUT /api/v1/production-plans/{id}/items` | `production:write` | Sustituye los ítems; solo versiones publicadas y plan `PENDING` |
+| `DELETE /api/v1/production-plans/{id}/items/{itemId}` | `production:write` | Solo con el plan en `PENDING` y sin batch |
+| `GET /api/v1/production-plans/{id}/requirements` | `production:read` | Necesidades agregadas por producto, con un único redondeo (PRD-02) |
+| `POST /api/v1/production-plans/{planId}/items/{itemId}/batches` | `production:write` | Arranca la ejecución; 201 y sin descontar stock todavía |
+| `GET /api/v1/production-batches/{id}` | `production:read` | Estado, raciones, desviación y responsables |
+| `PATCH /api/v1/production-batches/{id}` | `production:write` | `READY`, `CANCELLED` o `SERVED`; el stock se descuenta al pasar a `READY` |
+| `GET /api/v1/production-reports/deviations?from=&to=` | `reporting:read` | Desviaciones no nulas del periodo (PRD-05) |
+| `GET /api/v1/production-reports/consumption?from=&to=` | `reporting:read` | Teórico, producción, merma, ajustes y desviación por producto (ECO-03) |
+
+Los informes aceptan como máximo 31 días naturales y se agrupan por fecha de negocio en
+`Europe/Madrid`.
+
+### 6.4 Auditoría
 
 `audit_logs` es append-only: sin endpoint de edición ni borrado. Se registra en la misma transacción
 que la operación auditada, con `actor_id` tomado del token (`CurrentActor`), nunca del cuerpo de la
@@ -323,7 +365,7 @@ petición. Acciones ya cubiertas: `USER_CREATED`, `USER_UPDATED`, `USER_ROLE_CHA
 `SUPPLIER_CREATED`, `SUPPLIER_UPDATED`, `STOCK_PURCHASE_RECORDED`, `STOCK_ADJUSTMENT_RECORDED` y
 `STOCK_COST_CHANGED`.
 
-### 6.4 Arranque del primer administrador
+### 6.5 Arranque del primer administrador
 
 `AdminBootstrap` garantiza la fila de `establishments` y crea un `ADMIN` solo si no hay ningún usuario
 y existe `BOOTSTRAP_ADMIN_PASSWORD`. Sin contraseña configurada no se crea nada: no hay credenciales
