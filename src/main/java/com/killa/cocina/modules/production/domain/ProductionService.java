@@ -34,4 +34,23 @@ public interface ProductionService {
 
     /** Necesidades agregadas por producto, con merma y un único redondeo (PRD-02). */
     ProductionRequirements requirements(long establishmentId, long planId);
+
+    /** Inicia la ejecución de un ítem; todavía no descuenta stock (PRD-04). */
+    ProductionBatchView startBatch(long establishmentId, Long actorId, long planId, long itemId);
+
+    /**
+     * Avanza un batch por la máquina de estados (PRD-03..05).
+     *
+     * <p>{@code READY} exige las raciones reales y descuenta stock; {@code CANCELLED} solo se admite
+     * antes de terminar y no descuenta; {@code SERVED} no vuelve a tocar el kardex.</p>
+     */
+    ProductionBatchView transitionBatch(
+            long establishmentId,
+            Long actorId,
+            long batchId,
+            ProductionStatus target,
+            Integer rations,
+            String deviationReason);
+
+    ProductionBatchView findBatch(long establishmentId, long batchId);
 }

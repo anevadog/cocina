@@ -2,6 +2,7 @@ package com.killa.cocina.modules.production.infrastructure;
 
 import com.killa.cocina.modules.audit.domain.AuditAction;
 import com.killa.cocina.modules.audit.domain.AuditRecorder;
+import com.killa.cocina.modules.inventory.domain.StockService;
 import com.killa.cocina.modules.production.domain.ProductCatalog;
 import com.killa.cocina.modules.production.domain.ProductInfo;
 import com.killa.cocina.modules.production.domain.ProductionBatch;
@@ -66,6 +67,8 @@ public class ProductionApplicationService implements ProductionService {
 
     private final ProductCatalog products;
 
+    private final StockService stock;
+
     private final AuditRecorder audit;
 
     private final ObjectMapper objectMapper;
@@ -78,6 +81,7 @@ public class ProductionApplicationService implements ProductionService {
             ProductionBatchRepository batches,
             RecipeCompositionCatalog compositions,
             ProductCatalog products,
+            StockService stock,
             AuditRecorder audit,
             ObjectMapper objectMapper,
             Clock clock) {
@@ -86,6 +90,7 @@ public class ProductionApplicationService implements ProductionService {
         this.batches = batches;
         this.compositions = compositions;
         this.products = products;
+        this.stock = stock;
         this.audit = audit;
         this.objectMapper = objectMapper;
         this.clock = clock;
@@ -141,7 +146,7 @@ public class ProductionApplicationService implements ProductionService {
     @Override
     public ProductionPlanView cancel(long establishmentId, Long actorId, long planId) {
         long actor = requireActor(actorId);
-        ProductionPlan plan = requirePlan(establishmentId, planId);
+        ProductionPlan plan = requirePlanForUpdate(establishmentId, planId);
         List<ProductionPlanItem> items = planItems.findByPlan(plan.id());
         requireNotStarted(plan, items, "cancelar");
         ProductionPlan cancelled = plans.save(plan.withStatus(ProductionStatus.CANCELLED, Instant.now(clock)));
@@ -159,7 +164,7 @@ public class ProductionApplicationService implements ProductionService {
     @Override
     public void delete(long establishmentId, Long actorId, long planId) {
         long actor = requireActor(actorId);
-        ProductionPlan plan = requirePlan(establishmentId, planId);
+        ProductionPlan plan = requirePlanForUpdate(establishmentId, planId);
         List<ProductionPlanItem> items = planItems.findByPlan(plan.id());
         requireNotStarted(plan, items, "borrar");
         planItems.replaceForPlan(plan.id(), List.of());
@@ -178,7 +183,7 @@ public class ProductionApplicationService implements ProductionService {
     public ProductionPlanView replaceItems(
             long establishmentId, Long actorId, long planId, List<ProductionItemRegistration> items) {
         long actor = requireActor(actorId);
-        ProductionPlan plan = requirePlan(establishmentId, planId);
+        ProductionPlan plan = requirePlanForUpdate(establishmentId, planId);
         List<ProductionPlanItem> current = planItems.findByPlan(plan.id());
         requireNotStarted(plan, current, "modificar");
 
@@ -201,7 +206,7 @@ public class ProductionApplicationService implements ProductionService {
     @Override
     public ProductionPlanView deleteItem(long establishmentId, Long actorId, long planId, long itemId) {
         long actor = requireActor(actorId);
-        ProductionPlan plan = requirePlan(establishmentId, planId);
+        ProductionPlan plan = requirePlanForUpdate(establishmentId, planId);
         List<ProductionPlanItem> current = planItems.findByPlan(plan.id());
         requireNotStarted(plan, current, "modificar");
         planItems
@@ -245,6 +250,110 @@ public class ProductionApplicationService implements ProductionService {
                 .map(entry -> requirementLine(establishmentId, entry.getKey(), entry.getValue()))
                 .toList();
         return new ProductionRequirements(plan.id(), result);
+    }
+
+    @Override
+    public ProductionBatchView startBatch(long establishmentId, Long actorId, long planId, long itemId) {
+        long actor = requireActor(actorId);
+        Instant now = Instant.now(clock);
+        ProductionPlan plan = requirePlanForUpdate(establishmentId, planId);
+        ProductionPlanItem item = planItems
+                .findById(establishmentId, plan.id(), itemId)
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.RESOURCE_NOT_FOUND, "El ítem " + itemId + " no existe en el plan " + planId + "."));
+        if (plan.status() == ProductionStatus.CANCELLED) {
+            throw new ApiException(
+                    ErrorCode.RESOURCE_IN_USE, "El plan " + planId + " está cancelado y no admite producción.");
+        }
+        if (plan.status() == ProductionStatus.SERVED) {
+            throw new ApiException(
+                    ErrorCode.RESOURCE_IN_USE, "El plan " + planId + " ya se ha servido y no admite producción.");
+        }
+        if (batches.existsByPlanItem(item.id())) {
+            throw new ApiException(
+                    ErrorCode.RESOURCE_IN_USE,
+                    "El ítem " + itemId + " ya tiene producción registrada; cada ítem admite un único batch.");
+        }
+
+        ProductionBatch saved = batches.save(ProductionBatch.start(
+                establishmentId, item.id(), item.recipeVersionId(), item.plannedRations(), actor, now));
+        recomputeStatus(plan, now);
+        audit.record(
+                establishmentId,
+                actor,
+                AuditAction.PRODUCTION_BATCH_STARTED,
+                "production_batch",
+                saved.id(),
+                null,
+                batchSnapshot(saved));
+        return ProductionBatchView.from(saved);
+    }
+
+    @Override
+    public ProductionBatchView transitionBatch(
+            long establishmentId,
+            Long actorId,
+            long batchId,
+            ProductionStatus target,
+            Integer rations,
+            String deviationReason) {
+        long actor = requireActor(actorId);
+        if (target == null) {
+            throw invalid("status", "es obligatorio");
+        }
+        Instant now = Instant.now(clock);
+
+        ProductionBatch snapshot = batches.findById(establishmentId, batchId).orElseThrow(() -> batchNotFound(batchId));
+        ProductionPlanItem item = planItems
+                .findById(establishmentId, snapshot.planItemId())
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.RESOURCE_IN_USE,
+                        "El batch " + batchId + " apunta a un ítem de plan que ya no existe."));
+        ProductionPlan plan = requirePlanForUpdate(establishmentId, item.planId());
+        ProductionBatch current =
+                batches.findByIdForUpdate(establishmentId, batchId).orElseThrow(() -> batchNotFound(batchId));
+
+        ProductionBatch updated;
+        switch (target) {
+            case READY -> {
+                if (rations == null) {
+                    throw invalid("rations", "es obligatorio para terminar la producción");
+                }
+                updated = current.finish(rations, deviationReason, actor, now);
+                ProductionComposition composition =
+                        compositionOf(establishmentId, current.recipeVersionId(), new HashMap<>());
+                Map<Long, BigDecimal> needs = ProductionExpansion.consumptionByProduct(
+                        List.of(new ProductionExpansion.PlanLine(composition.items(), updated.rations())));
+                stock.consumeForProduction(establishmentId, actor, batchId, needs, now);
+            }
+            case CANCELLED -> updated = current.cancel();
+            case SERVED -> updated = current.serve();
+            default ->
+                throw new ApiException(
+                        ErrorCode.RESOURCE_IN_USE,
+                        "El estado " + target + " no se fija manualmente; el batch solo avanza a READY, "
+                                + "SERVED o CANCELLED según sus transiciones válidas.");
+        }
+
+        ProductionBatch saved = batches.save(updated);
+        recomputeStatus(plan, now);
+        audit.record(
+                establishmentId,
+                actor,
+                actionFor(target),
+                "production_batch",
+                saved.id(),
+                batchSnapshot(current),
+                batchSnapshot(saved));
+        return ProductionBatchView.from(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProductionBatchView findBatch(long establishmentId, long batchId) {
+        return batches.findById(establishmentId, batchId)
+                .map(ProductionBatchView::from)
+                .orElseThrow(() -> batchNotFound(batchId));
     }
 
     private RequirementLine requirementLine(long establishmentId, long productId, BigDecimal quantity) {
@@ -384,10 +493,51 @@ public class ProductionApplicationService implements ProductionService {
         }
     }
 
+    /**
+     * Recalcula y persiste el estado del plan a partir de sus batches (PRD-04).
+     *
+     * <p>El estado guardado es una ayuda de filtrado, no la fuente de verdad: se deriva de las
+     * ejecuciones en cada transición para que no pueda quedar desincronizado.</p>
+     */
+    private void recomputeStatus(ProductionPlan plan, Instant now) {
+        List<Long> itemIds = planItems.findByPlan(plan.id()).stream()
+                .map(ProductionPlanItem::id)
+                .toList();
+        ProductionStatus status = effectiveStatus(plan, batches.findByPlanItems(itemIds));
+        ProductionPlan updated = status == plan.status() ? plan.touched(now) : plan.withStatus(status, now);
+        plans.save(updated);
+    }
+
     private ProductionPlan requirePlan(long establishmentId, long planId) {
         return plans.findById(establishmentId, planId)
                 .orElseThrow(() -> new ApiException(
                         ErrorCode.RESOURCE_NOT_FOUND, "El plan de producción " + planId + " no existe."));
+    }
+
+    private ProductionPlan requirePlanForUpdate(long establishmentId, long planId) {
+        return plans.findForUpdate(establishmentId, planId)
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.RESOURCE_NOT_FOUND, "El plan de producción " + planId + " no existe."));
+    }
+
+    private static ApiException batchNotFound(long batchId) {
+        return new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "El batch de producción " + batchId + " no existe.");
+    }
+
+    private static AuditAction actionFor(ProductionStatus target) {
+        return switch (target) {
+            case READY -> AuditAction.PRODUCTION_BATCH_FINISHED;
+            case SERVED -> AuditAction.PRODUCTION_BATCH_SERVED;
+            case CANCELLED -> AuditAction.PRODUCTION_BATCH_CANCELLED;
+            default -> throw new IllegalArgumentException("Transición de batch no soportada: " + target);
+        };
+    }
+
+    private static ApiException invalid(String field, String message) {
+        return new ApiException(
+                ErrorCode.VALIDATION_ERROR,
+                "La petición contiene datos no válidos.",
+                List.of(new ApiError.FieldViolation(field, message)));
     }
 
     private static long requireActor(Long actorId) {
@@ -421,6 +571,21 @@ public class ProductionApplicationService implements ProductionService {
                             return line;
                         })
                         .toList());
+        return objectMapper.writeValueAsString(values);
+    }
+
+    private String batchSnapshot(ProductionBatch batch) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("planItemId", batch.planItemId());
+        values.put("recipeVersionId", batch.recipeVersionId());
+        values.put("status", batch.status().name());
+        values.put("plannedRations", batch.plannedRations());
+        values.put("rations", batch.rations());
+        values.put("deviation", batch.deviation());
+        values.put("deviationReason", batch.deviationReason());
+        values.put(
+                "finishedAt",
+                batch.finishedAt() == null ? null : batch.finishedAt().toString());
         return objectMapper.writeValueAsString(values);
     }
 }

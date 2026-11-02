@@ -23,6 +23,11 @@ class ProductionBatchRepositoryAdapter implements ProductionBatchRepository {
     }
 
     @Override
+    public Optional<ProductionBatch> findByIdForUpdate(long establishmentId, long batchId) {
+        return batches.findForUpdate(batchId, establishmentId).map(ProductionBatchEntity::toDomain);
+    }
+
+    @Override
     public List<ProductionBatch> findByPlanItems(Collection<Long> planItemIds) {
         if (planItemIds == null || planItemIds.isEmpty()) {
             return List.of();

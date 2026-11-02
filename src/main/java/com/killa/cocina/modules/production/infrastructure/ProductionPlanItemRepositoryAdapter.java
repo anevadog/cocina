@@ -30,6 +30,11 @@ class ProductionPlanItemRepositoryAdapter implements ProductionPlanItemRepositor
     }
 
     @Override
+    public Optional<ProductionPlanItem> findById(long establishmentId, long itemId) {
+        return items.findByIdAndEstablishmentId(itemId, establishmentId).map(ProductionPlanItemEntity::toDomain);
+    }
+
+    @Override
     public void replaceForPlan(long planId, List<ProductionPlanItem> replacements) {
         items.deleteByPlanId(planId);
         items.saveAll(replacements.stream().map(ProductionPlanItemEntity::from).toList());

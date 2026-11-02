@@ -9,6 +9,9 @@ public interface ProductionBatchRepository {
 
     Optional<ProductionBatch> findById(long establishmentId, long batchId);
 
+    /** Bloquea el batch para que una transición simultánea no descuente dos veces. */
+    Optional<ProductionBatch> findByIdForUpdate(long establishmentId, long batchId);
+
     List<ProductionBatch> findByPlanItems(Collection<Long> planItemIds);
 
     Optional<ProductionBatch> findByPlanItem(long planItemId);

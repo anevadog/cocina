@@ -9,6 +9,12 @@ public interface ProductionPlanRepository {
 
     Optional<ProductionPlan> findById(long establishmentId, long planId);
 
+    /**
+     * Bloquea el plan: serializa cambios de ítems y transiciones de sus batches, para que dos
+     * peticiones simultáneas no calculen el estado desde una foto vieja (PRD-04).
+     */
+    Optional<ProductionPlan> findForUpdate(long establishmentId, long planId);
+
     /** Plan de una fecha y servicio, para rechazar duplicados (PRD-01). */
     Optional<ProductionPlan> findByService(long establishmentId, LocalDate serviceDate, ServiceType serviceType);
 

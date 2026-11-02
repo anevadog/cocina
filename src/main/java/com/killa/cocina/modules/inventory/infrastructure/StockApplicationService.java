@@ -35,6 +35,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -57,6 +58,9 @@ public class StockApplicationService implements StockService {
 
     /** Límite de cada lista de alertas: la respuesta queda acotada y el total dice cuántos hay. */
     private static final int ALERT_LIMIT = 100;
+
+    /** Referencia del kardex hacia el batch de producción que originó el consumo. */
+    private static final String PRODUCTION_REFERENCE = "production_batch";
 
     private final ProductRepository products;
 
@@ -208,6 +212,142 @@ public class StockApplicationService implements StockService {
                 stockSnapshot(product),
                 stockSnapshot(updated));
         return StockChangeResult.from(movement, updated);
+    }
+
+    @Override
+    public void consumeForProduction(
+            long establishmentId, Long actorId, long batchId, Map<Long, BigDecimal> requirements, Instant occurredAt) {
+        long actor = requireActor(actorId);
+        if (occurredAt == null) {
+            throw new ApiException(
+                    ErrorCode.VALIDATION_ERROR,
+                    "La petición contiene datos no válidos.",
+                    List.of(new ApiError.FieldViolation("occurredAt", "es obligatorio")));
+        }
+        if (requirements == null || requirements.isEmpty()) {
+            return;
+        }
+
+        Map<Long, BigDecimal> ordered = new TreeMap<>();
+        for (Map.Entry<Long, BigDecimal> line : requirements.entrySet()) {
+            if (line.getKey() == null
+                    || line.getValue() == null
+                    || line.getValue().signum() < 0) {
+                throw new ApiException(
+                        ErrorCode.VALIDATION_ERROR,
+                        "La petición contiene datos no válidos.",
+                        List.of(new ApiError.FieldViolation("requirements", "las cantidades deben ser positivas")));
+            }
+            BigDecimal quantity = Quantities.stock(line.getValue());
+            if (quantity.signum() > 0) {
+                ordered.put(line.getKey(), quantity);
+            }
+        }
+        if (ordered.isEmpty()) {
+            return;
+        }
+
+        // Primero se bloquean todos los productos en orden ascendente; después se consume. Así dos
+        // producciones con ingredientes cruzados no pueden interbloquearse (ADR-022, ADR-035).
+        Map<Long, Product> locked = new LinkedHashMap<>();
+        for (Long productId : ordered.keySet()) {
+            locked.put(productId, requireActiveForUpdate(establishmentId, productId));
+        }
+        for (Map.Entry<Long, Product> entry : locked.entrySet()) {
+            consumeProductForProduction(
+                    establishmentId, batchId, actor, entry.getValue(), ordered.get(entry.getKey()), occurredAt);
+        }
+    }
+
+    /**
+     * Consume un producto por lotes vigentes FIFO y escribe un movimiento por lote.
+     *
+     * <p>El saldo del producto se recalcula con cada lote para que la cadena de {@code balance_after}
+     * sea reconstruible. Si el producto admite negativo y faltan lotes, el resto va en un movimiento
+     * sin lote, igual que un ajuste con datos cargados fuera del API.</p>
+     */
+    private void consumeProductForProduction(
+            long establishmentId, long batchId, long actor, Product product, BigDecimal quantity, Instant occurredAt) {
+        List<StockLot> usable = lots.findUsable(establishmentId, product.id(), occurredAt);
+        BigDecimal available = usable.stream().map(StockLot::remainingQty).reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (available.compareTo(quantity) < 0 && !product.allowNegative()) {
+            throw new ApiException(
+                    ErrorCode.INSUFFICIENT_STOCK,
+                    "No hay stock vigente suficiente de '" + product.name() + "' para la producción: se necesitan "
+                            + quantity.toPlainString() + " "
+                            + product.baseUnit().label() + " y hay "
+                            + available.toPlainString()
+                            + ". Los lotes caducados no se consumen.");
+        }
+
+        BigDecimal remaining = quantity;
+        BigDecimal balance = product.currentStock();
+        for (StockLot lot : usable) {
+            if (remaining.signum() <= 0) {
+                break;
+            }
+            BigDecimal taken = remaining.min(lot.remainingQty());
+            lots.save(lot.consume(taken));
+            balance = Quantities.stock(balance.subtract(taken));
+            movements.save(productionMovement(
+                    establishmentId,
+                    product.id(),
+                    lot.id(),
+                    taken,
+                    lot.unitCost(),
+                    balance,
+                    batchId,
+                    actor,
+                    occurredAt));
+            remaining = remaining.subtract(taken);
+        }
+        if (remaining.signum() > 0) {
+            log.warn(
+                    "Producción sin lotes vigentes suficientes [establishmentId={}, productId={}, "
+                            + "batchId={}, cantidad sin lote={}]",
+                    establishmentId,
+                    product.id(),
+                    batchId,
+                    remaining.toPlainString());
+            balance = Quantities.stock(balance.subtract(remaining));
+            movements.save(productionMovement(
+                    establishmentId,
+                    product.id(),
+                    null,
+                    remaining,
+                    product.currentAvgCost(),
+                    balance,
+                    batchId,
+                    actor,
+                    occurredAt));
+        }
+        products.save(product.withStock(balance, product.currentAvgCost(), Instant.now(clock)));
+    }
+
+    private static StockMovement productionMovement(
+            long establishmentId,
+            long productId,
+            Long lotId,
+            BigDecimal quantity,
+            BigDecimal unitCost,
+            BigDecimal balanceAfter,
+            long batchId,
+            long actor,
+            Instant occurredAt) {
+        return new StockMovement(
+                null,
+                establishmentId,
+                productId,
+                lotId,
+                MovementType.PRODUCTION_OUT,
+                quantity,
+                unitCost,
+                balanceAfter,
+                null,
+                PRODUCTION_REFERENCE,
+                batchId,
+                actor,
+                occurredAt);
     }
 
     @Override

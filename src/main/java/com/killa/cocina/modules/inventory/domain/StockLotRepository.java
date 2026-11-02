@@ -14,6 +14,14 @@ public interface StockLotRepository {
     /** Lotes con saldo, en orden FIFO por caducidad (sin fecha al final) y recepción. */
     List<StockLot> findConsumable(long establishmentId, long productId);
 
+    /**
+     * Lotes con saldo no caducados en {@code now}, en el mismo orden FIFO que {@link #findConsumable}.
+     *
+     * <p>Es el único punto de consumo que excluye los caducados: un ajuste manual sí puede
+     * retirarlos, pero producción nunca debe llevar un lote caducado al plato (ADR-030, CAL-04).</p>
+     */
+    List<StockLot> findUsable(long establishmentId, long productId, Instant now);
+
     List<StockLot> findByProduct(long establishmentId, long productId, int page, int size);
 
     long countByProduct(long establishmentId, long productId);

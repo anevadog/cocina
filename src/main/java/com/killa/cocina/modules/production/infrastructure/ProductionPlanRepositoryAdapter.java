@@ -25,6 +25,11 @@ class ProductionPlanRepositoryAdapter implements ProductionPlanRepository {
     }
 
     @Override
+    public Optional<ProductionPlan> findForUpdate(long establishmentId, long planId) {
+        return plans.findForUpdate(planId, establishmentId).map(ProductionPlanEntity::toDomain);
+    }
+
+    @Override
     public Optional<ProductionPlan> findByService(
             long establishmentId, LocalDate serviceDate, ServiceType serviceType) {
         return plans.findByEstablishmentIdAndServiceDateAndServiceType(establishmentId, serviceDate, serviceType)

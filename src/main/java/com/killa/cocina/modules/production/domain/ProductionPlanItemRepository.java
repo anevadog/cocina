@@ -10,6 +10,9 @@ public interface ProductionPlanItemRepository {
 
     Optional<ProductionPlanItem> findById(long establishmentId, long planId, long itemId);
 
+    /** Localiza el ítem por su id para llegar al plan desde un batch. */
+    Optional<ProductionPlanItem> findById(long establishmentId, long itemId);
+
     /** Sustituye el conjunto completo de ítems; solo se usa con el plan en {@code PENDING}. */
     void replaceForPlan(long planId, List<ProductionPlanItem> items);
 

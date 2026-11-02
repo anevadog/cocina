@@ -26,6 +26,23 @@ interface StockLotJpaRepository extends JpaRepository<StockLotEntity, Long> {
     List<StockLotEntity> findConsumable(
             @Param("establishmentId") long establishmentId, @Param("productId") long productId);
 
+    /**
+     * Igual que {@link #findConsumable}, pero excluye los lotes caducados en {@code now}. Es el
+     * consumo de producción: un lote caducado no se consume (CAL-04, ADR-030).
+     */
+    @Query("""
+            select l from StockLotEntity l
+            where l.establishmentId = :establishmentId and l.productId = :productId
+              and l.remainingQty > 0
+              and (l.expiresAt is null or l.expiresAt > :now)
+            order by case when l.expiresAt is null then 1 else 0 end,
+                     l.expiresAt asc, l.receivedAt asc, l.id asc
+            """)
+    List<StockLotEntity> findUsable(
+            @Param("establishmentId") long establishmentId,
+            @Param("productId") long productId,
+            @Param("now") java.time.Instant now);
+
     List<StockLotEntity> findByEstablishmentIdAndProductIdOrderByReceivedAtDescIdDesc(
             long establishmentId, long productId, Pageable pageable);
 

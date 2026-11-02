@@ -143,11 +143,11 @@ remoto Git; se comprobará al publicar el repositorio.
 
 **Bloque B — ejecución y descuento transaccional (REC-06, PRD-03, PRD-04)**
 
-- [ ] Batch, máquina de estados y transiciones válidas (PRD-04)
-- [ ] Descuento atómico al pasar a `READY`, con productos bloqueados en orden
-- [ ] Cancelación sin descuento y corrección tras `READY` solo por ajuste
-- [ ] Fallo parcial sin rastro y concurrencia sin sobreventa
-- [ ] Lotes caducados fuera del consumo de producción
+- [x] Batch, máquina de estados y transiciones válidas (PRD-04)
+- [x] Descuento atómico al pasar a `READY`, con productos bloqueados en orden
+- [x] Cancelación sin descuento y corrección tras `READY` solo por ajuste
+- [x] Fallo parcial sin rastro y concurrencia sin sobreventa
+- [x] Lotes caducados fuera del consumo de producción
 
 **Bloque C — desviaciones y consumo (PRD-05, ECO-03)**
 

@@ -44,6 +44,13 @@ class StockLotRepositoryAdapter implements StockLotRepository {
     }
 
     @Override
+    public List<StockLot> findUsable(long establishmentId, long productId, Instant now) {
+        return lots.findUsable(establishmentId, productId, now).stream()
+                .map(StockLotEntity::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<StockLot> findByProduct(long establishmentId, long productId, int page, int size) {
         return lots
                 .findByEstablishmentIdAndProductIdOrderByReceivedAtDescIdDesc(

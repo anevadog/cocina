@@ -14,6 +14,8 @@ interface ProductionPlanItemJpaRepository extends JpaRepository<ProductionPlanIt
 
     Optional<ProductionPlanItemEntity> findByIdAndEstablishmentIdAndPlanId(long id, long establishmentId, long planId);
 
+    Optional<ProductionPlanItemEntity> findByIdAndEstablishmentId(long id, long establishmentId);
+
     /**
      * Borra los ítems de un plan antes de insertar los nuevos. Debe ser un DELETE inmediato: si
      * Hibernate dejara los borrados para el final, el INSERT de la misma versión chocaría con la
