@@ -41,7 +41,7 @@ compromisos.
 - [x] Crear documentación inicial (`AGENTS.md`, `README.md`, `docs/`)
 - [x] Revisión del usuario
 - [x] `git init` en `cocina/` y commits iniciales (los ejecuta el usuario): `5c25101`, `88259cb`
-- [ ] Decidir política de retención de datos (PENDIENTE P2 — bloquea datos reales, no F1)
+- [ ] Decidir política de retención de datos (PENDIENTE P2 — bloquea datos reales; delegado en asesoría el 2026-11-02, preguntas en `docs/seguridad.md` §6.5)
 
 ## F1 — Esqueleto, entorno y CI
 

@@ -130,6 +130,36 @@ de auditoría conservan el nombre; hay que decidir si eso es proporcionado o si 
   almacenamiento, elegir región de la UE y documentar transferencias si las hay.
 - El establecimiento es el responsable del tratamiento; el software es el medio, no el responsable.
 
+### 6.5 Consulta a asesoría (P2)
+
+Decidido el 2026-11-02: la base legal, los plazos y el procedimiento de derechos quedan **fuera del
+alcance técnico del proyecto**. Los resuelve el establecimiento con su asesoría antes de introducir
+datos reales. Estas son las preguntas que hay que llevarle; la respuesta se incorpora a este documento
+y a `docs/decisiones.md` cuando exista.
+
+1. **Base jurídica por categoría**: ¿contrato laboral para `app_users` y `refresh_tokens`, obligación
+   legal para la trazabilidad de kardex/producción/calidad y auditoría, e interés legítimo para la
+   seguridad? ¿Alguna categoría necesita consentimiento?
+2. **Plazos**: ¿son admisibles los plazos propuestos en §6.3 (6 meses tras la baja, 4 años de
+   auditoría, 2 años de operación, 30 días de tokens y copias)? ¿Hay plazos imperativos de la normativa
+   alimentaria que manden sobre ellos?
+3. **Derecho de supresión frente a auditoría inmutable**: ¿basta con desactivar y seudonimizar
+   `username`/`full_name` conservando `id`, o hay que eliminar también los nombres de los snapshots
+   históricos? ¿Es proporcionado seguir guardando `fullName` en `audit_logs` a partir de ahora?
+4. **Datos en texto libre** (descripción de incidencias, motivos de ajuste y merma): ¿qué instrucción
+   hay que dar al personal y qué hacer si aparece un nombre o un dato de salud?
+5. **Encargados del tratamiento**: contrato con el proveedor del VPS y del almacenamiento S3, región
+   UE, cifrado en reposo y transferencias internacionales si las hubiera.
+6. **Registro de actividades y DPO**: ¿hace falta registro de actividades del tratamiento, evaluación
+   de impacto o delegado de protección de datos para este tamaño?
+7. **Procedimiento de derechos**: cómo atender acceso, rectificación, supresión y portabilidad sin
+   interfaz de empleado, y en qué plazo.
+8. **Información al empleado**: qué texto de información y consentimiento (si procede) se entrega al
+   alta y dónde se conserva.
+
+Mientras no haya respuesta, el sistema no se usa con datos reales de empleados: los usuarios `demo.*`
+y los datos de prueba son el único contenido admitido.
+
 ## 7. Registro y observabilidad
 
 - Logs JSON (ECS) con `requestId` por petición y sin datos personales.
