@@ -31,6 +31,9 @@ Internet
 - **PostgreSQL**: sin `ports`, solo accesible desde la red interna `backend` de Compose.
 - **Flyway** aplica las migraciones al arrancar la API; `/ready` falla si el esquema no está al día.
 - La documentación OpenAPI/Swagger está **apagada** en el perfil `prod` (`API_DOCS_ENABLED=false`).
+- Para enseñar el producto sin datos reales ni escrituras existe una pila aparte de **demo pública de
+  solo lectura** (`compose.demo.yaml` + `Caddyfile.demo`); no sustituye a producción. Procedimiento y
+  límites en `docs/demo-publica.md` (ADR-047).
 
 ## 2. Requisitos y coste
 

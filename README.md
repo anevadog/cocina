@@ -28,6 +28,7 @@ P2 (base legal y retención) antes de datos reales de empleados. Ver `docs/memor
 | `docs/despliegue.md` | VPS, TLS, primer despliegue, actualización, backups y operación |
 | `docs/seguridad.md` | Endurecimiento, gestión de secretos y datos personales |
 | `docs/demo.md` | Guion y script de demostración reproducible con datos ficticios |
+| `docs/demo-publica.md` | Demo pública de solo lectura para clientes y reclutadores: despliegue, seguridad y operación |
 | `docs/revision-tecnica.md` | Guía para un revisor externo o auditor: qué mirar, cómo reproducirlo y qué límites hay |
 | `docs/chuleta-defensa.md` | Chuleta para defender el proyecto en una exposición técnica |
 
@@ -130,6 +131,22 @@ curl -fsS https://<dominio>/ready
 - Antes de datos reales de empleados hay que cerrar **P2** (base legal y retención); ver
   `docs/seguridad.md`.
 
+## Demo pública de solo lectura
+
+Para enseñar el producto sin instalar nada y sin acceso de escritura hay una pila aparte,
+`compose.demo.yaml`: PostgreSQL desechable, la API con perfiles `prod,demo` y Caddy sirviendo un panel
+estático. El proxy solo permite `GET /api/v1/*` y el login del panel; cualquier otra llamada devuelve
+403. Los datos son ficticios y `scripts/demo-public-reset.sh` los reinicia cuando se programe por cron.
+
+```bash
+cp .env.demo.example .env.demo     # dominio, correo y secretos; chmod 600
+docker compose -f compose.demo.yaml --env-file .env.demo up -d --build
+sh scripts/demo-public-reset.sh    # reiniciar los datos ficticios
+```
+
+Decisión en ADR-047 y procedimiento completo en `docs/demo-publica.md`. La demo **no** está desplegada
+todavía: requiere VPS y dominio. Para previsualizarla en local está `demo/Caddyfile.local`.
+
 ## Comandos habituales
 
 ```bash
@@ -144,6 +161,7 @@ sh scripts/restore.sh backups/<archivo>.dump cocina_restore             # restau
 sh scripts/check-secrets.sh                                             # NFR-SEG-04 (también en CI)
 sh scripts/demo.sh       # demostración reproducible con datos ficticios (deja Swagger en :8081)
 sh scripts/demo.sh --stop                                               # parar y borrar la demo
+sh scripts/demo-public-reset.sh                                         # reiniciar los datos de la demo pública
 docker compose ps        # estado de los contenedores
 docker compose logs -f db
 docker compose down      # parar PostgreSQL (añade -v para borrar los datos)
@@ -191,11 +209,14 @@ cocina/
 │  ├─ infrastructure/           # migraciones sobre PostgreSQL real
 │  ├─ modules/                  # dominio puro e integración de auth, users e inventory
 │  └─ support/                  # contenedor PostgreSQL compartido (Testcontainers)
+├─ demo/                         # panel estático y Caddyfile local de la demo pública (fuera del MVP)
 ├─ compose.yaml                 # PostgreSQL 18 para desarrollo (host: 5433)
 ├─ compose.prod.yaml            # pila de producción: PostgreSQL, API y Caddy
+├─ compose.demo.yaml            # pila de demo pública de solo lectura (ADR-047)
 ├─ Caddyfile                    # TLS automático y cabeceras de seguridad
+├─ Caddyfile.demo               # proxy de la demo: solo GET y login
 ├─ Dockerfile                   # imagen multi-stage, usuario no root, healthcheck
-└─ .env.example  .env.production.example   # plantillas; el .env real nunca se commitea
+└─ .env.example  .env.production.example  .env.demo.example   # plantillas; los .env reales no se commitean
 ```
 
 ## Variables de entorno

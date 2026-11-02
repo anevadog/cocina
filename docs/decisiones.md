@@ -51,6 +51,7 @@ Una entrada por decisión con contexto, opciones, decisión y consecuencias. Est
 | ADR-044 | Rendimiento medido con un check opt-in, no en CI | Aceptada |
 | ADR-045 | Despliegue en VPS con Docker Compose y Caddy | Aceptada |
 | ADR-046 | Copia externa con rclone y retención remota | Aceptada |
+| ADR-047 | Demo pública de solo lectura en una pila separada | Aceptada |
 
 ---
 
@@ -939,3 +940,29 @@ en una base nueva (`docs/backups.md`).
 servidor. Requiere instalar y configurar rclone en el host y proteger sus credenciales; el borrado por
 retención remota debe vigilarse para no quedarse sin copias si falla la subida. No añade PITR: el RPO
 sigue siendo de 24 h.
+
+---
+
+## ADR-047 — Demo pública de solo lectura en una pila separada
+
+**Contexto:** el MVP no tiene interfaz y el producto es el contrato HTTP. Para enseñarlo a un cliente
+o a un reclutador no basta con Swagger: una lista de endpoints no demuestra nada a quien no es técnico,
+y abrir la API de escritura a Internet permite ensuciar o tumbar la demostración. Se necesita una URL
+que se abra y muestre datos reales de la aplicación sin convertir la demo en un segundo producto.
+
+**Opciones:** demo guiada en la pantalla del autor (A) · panel público de solo lectura sobre una pila
+aislada (B) · piloto con datos reales y frontend completo (C).
+
+**Decisión:** (B), con estas condiciones. `compose.demo.yaml` levanta PostgreSQL, la API con perfiles
+`prod,demo` y Caddy; la base es un volumen desechable que se borra y se vuelve a sembrar cada noche.
+Caddy sirve un panel estático de `demo/site/` y aplica una lista blanca de métodos: `GET /api/v1/*` y
+`POST /api/v1/auth/login`; todo lo demás bajo `/api/*` devuelve 403. La documentación OpenAPI queda
+apagada. La contraseña de los usuarios `demo.*` es pública a propósito porque el proxy impide
+cualquier escritura. El panel y su pila son material de demostración: no forman parte del alcance del
+MVP ni de la arquitectura modular de `src/main/java`. Procedimiento en `docs/demo-publica.md`.
+
+**Consecuencias:** el producto se puede enseñar sin instalar nada y sin compartir credenciales
+privadas, con datos ficticios y un coste añadido de un VPS pequeño (≤ 15 €/mes con dominio, ver
+`docs/despliegue.md`). A cambio hay una superficie que mantener: dos pilas si coinciden demo y
+producción, reinicio nocturno, límite de peticiones pendiente y aviso legal pendiente de revisión. La
+demo no prueba el rendimiento real, ni la operación con datos de un cliente, ni resuelve **P2**.
