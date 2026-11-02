@@ -27,6 +27,7 @@ P2 (base legal y retención) antes de datos reales de empleados. Ver `docs/memor
 | `docs/rendimiento.md` | Método y resultados de NFR-REN-01/02 |
 | `docs/despliegue.md` | VPS, TLS, primer despliegue, actualización, backups y operación |
 | `docs/seguridad.md` | Endurecimiento, gestión de secretos y datos personales |
+| `docs/demo.md` | Guion y script de demostración reproducible con datos ficticios |
 
 ## Requisitos del entorno
 
@@ -104,6 +105,8 @@ catálogo, recetas publicadas, un plan de producción, temperaturas, una merma y
 - Contraseña: `Demo2026!segura` por defecto; se cambia con `cocina.demo.password`
   (`COCINA_DEMO_PASSWORD` en el entorno) y nunca se escribe en el log.
 - El seed es idempotente: si ya hay productos, no hace nada. No se ejecuta sin el perfil `demo`.
+- Para enseñarlo sin preparar nada a mano: `sh scripts/demo.sh` arranca una base aparte, siembra y
+  ejecuta el recorrido. Ver `docs/demo.md`.
 
 ## Despliegue en producción
 
@@ -137,6 +140,8 @@ curl -fsS https://<dominio>/ready
 sh scripts/backup.sh     # copia lógica en backups/ (Git Bash o WSL)
 sh scripts/restore.sh backups/<archivo>.dump cocina_restore             # restaurar en base nueva
 sh scripts/check-secrets.sh                                             # NFR-SEG-04 (también en CI)
+sh scripts/demo.sh       # demostración reproducible con datos ficticios (deja Swagger en :8081)
+sh scripts/demo.sh --stop                                               # parar y borrar la demo
 docker compose ps        # estado de los contenedores
 docker compose logs -f db
 docker compose down      # parar PostgreSQL (añade -v para borrar los datos)

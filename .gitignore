@@ -43,6 +43,7 @@ ehthumbs.db
 logs/
 tmp/
 temp/
+.demo/
 
 # Cobertura y reportes
 coverage/
