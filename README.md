@@ -28,6 +28,7 @@ P2 (base legal y retención) antes de datos reales de empleados. Ver `docs/memor
 | `docs/despliegue.md` | VPS, TLS, primer despliegue, actualización, backups y operación |
 | `docs/seguridad.md` | Endurecimiento, gestión de secretos y datos personales |
 | `docs/demo.md` | Guion y script de demostración reproducible con datos ficticios |
+| `docs/revision-tecnica.md` | Guía para un revisor externo o auditor: qué mirar, cómo reproducirlo y qué límites hay |
 
 ## Requisitos del entorno
 
