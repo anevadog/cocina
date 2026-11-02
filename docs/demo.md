@@ -38,6 +38,7 @@ sh scripts/demo.sh --stop   # para la API y borra la base de demostración
 Al terminar:
 
 - **Swagger UI**: <http://localhost:8081/swagger-ui.html>
+- **Login en Swagger**: <http://localhost:8081/swagger-ui/index.html#/auth-controller/login>
 - **OpenAPI**: <http://localhost:8081/v3/api-docs>
 - **Salud**: <http://localhost:8081/health> y <http://localhost:8081/ready>
 - **Log**: `.demo/api.log` (ignorado por Git)
@@ -131,22 +132,56 @@ Demostración lista
 7. **Calidad**: temperatura, merma e incidencia quedan con actor y fecha; la trazabilidad permite
    ir de un lote a la preparación en la que se usó.
 
-## 5. Usar Swagger UI
+## 5. Usar Swagger UI (y dónde se hace el login)
 
-1. Abrir <http://localhost:8081/swagger-ui.html>.
-2. Ejecutar `POST /api/v1/auth/login` con `{"username":"demo.admin","password":"Demo2026!segura"}`.
-3. Copiar `accessToken` y pulsar **Authorize**; pegar el token (sin `Bearer`).
-4. Probar, por ejemplo:
+**Swagger no tiene un formulario de login.** La pantalla es la lista de endpoints y la sesión se
+abre en dos pasos: se pide el token al endpoint de login y se pega en **Authorize** (arriba a la
+derecha). Para ir directo:
+
+<http://localhost:8081/swagger-ui/index.html#/auth-controller/login>
+
+1. Abrir el enlace anterior: despliega `POST /api/v1/auth/login`.
+2. Pulsar **Try it out**.
+3. Pegar este cuerpo (el botón ya lo trae como ejemplo, con `demo.admin`):
+   ```json
+   {"username":"demo.admin","password":"Demo2026!segura"}
+   ```
+4. **Execute**. La respuesta trae `accessToken`, `tokenType` y `refreshToken`.
+5. Copiar el valor de `accessToken` (solo el token, sin `Bearer`).
+6. Pulsar **Authorize** (arriba a la derecha, candado), pegarlo en el campo `bearerAuth` y confirmar.
+   A partir de ahí todos los endpoints van autenticados y Swagger recuerda el token al recargar.
+7. Probar, por ejemplo:
    - `GET /api/v1/products`
    - `GET /api/v1/reports/recipe-costs`
    - `GET /api/v1/reports/expiring-lots?days=30`
    - `GET /api/v1/production-plans?serviceDate=<mañana>`
    - `GET /api/v1/inventory/alerts`
-5. Para una transición: `POST /api/v1/production-plans/{planId}/items/{itemId}/batches` y después
+8. Para una transición: `POST /api/v1/production-plans/{planId}/items/{itemId}/batches` y después
    `PATCH /api/v1/production-batches/{batchId}` con `{"status":"READY","rations":7,...}`.
+
+El contrato declara el esquema `bearerAuth` (HTTP/JWT) y lo exige en todos los endpoints salvo
+`auth`, `/health`, `/ready` y la propia documentación. Por eso **Authorize** aparece siempre y los
+endpoints protegidos llevan candado; los públicos no. Es lo que permite probar la API autenticada
+desde la interfaz y no solo por consola.
 
 Swagger está activo porque el perfil es `local`. En `prod` está apagado
 (`API_DOCS_ENABLED=false`, ADR-045).
+
+### Si no ves dónde logearte
+
+- El token se pide en **`POST /api/v1/auth/login`**, no en un formulario de la página.
+- El botón **Authorize** está arriba a la derecha; si no aparece, la API en marcha es anterior al
+  cambio de `OpenApiConfig`: para la demo (`sh scripts/demo.sh --stop`), recompila el jar y vuelve a
+  lanzarla. También sirve recargar con `Ctrl+F5`.
+- Si `Authorize` no guarda el token, comprueba que lo has pegado sin la palabra `Bearer`.
+- Si un endpoint devuelve `401`, el token ha caducado (15 min): repite el login y vuelve a autorizar.
+- También puedes hacerlo por consola:
+  ```bash
+  curl -sS -X POST http://localhost:8081/api/v1/auth/login \
+    -H "Content-Type: application/json" \
+    -d '{"username":"demo.admin","password":"Demo2026!segura"}'
+  ```
+  y usar `-H "Authorization: Bearer <accessToken>"` en el resto de llamadas.
 
 ## 6. Repetir y limpiar
 

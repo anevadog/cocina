@@ -485,7 +485,9 @@ por defecto. La decisión y sus alternativas están en ADR-019.
   `lowStockTotal` y `expiringTotal` con el total real.
 - Sin token, cualquier endpoint de negocio responde 401 `UNAUTHORIZED`. INV-05 dice «sin usuario →
   400»; se mantiene 401 porque es lo correcto para una petición no autenticada.
-- OpenAPI generado; no se documenta a mano en Markdown.
+- OpenAPI generado; no se documenta a mano en Markdown. El contrato declara el esquema
+  `bearerAuth` (HTTP/JWT) y lo exige en todos los endpoints salvo `auth`, `/health`, `/ready` y la
+  documentación: es lo que habilita **Authorize** en Swagger UI para probar la API autenticada.
 
 ## 8. Persistencia y rendimiento
 

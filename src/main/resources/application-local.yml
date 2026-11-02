@@ -12,6 +12,18 @@ cocina:
     # Contraseña de desarrollo para el primer administrador. Cámbiala antes de usar datos reales.
     admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:cambiar_en_local}
 
+springdoc:
+  # Ayudas solo para la demo local: no afectan a `prod`, donde springdoc está apagado.
+  swagger-ui:
+    # El token de Authorize sobrevive a una recarga de la página.
+    persist-authorization: true
+    # Endpoints y etiquetas en orden alfabético: más fácil de recorrer en una demostración.
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+    # Los modelos ocupan mucho y no aportan nada al guion.
+    default-models-expand-depth: -1
+
 logging:
   level:
     root: INFO

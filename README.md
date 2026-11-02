@@ -10,7 +10,7 @@ auditoría append-only protegida por trigger, inventario con lotes y PMP, receta
 producción con descuento atómico, temperaturas con alertas, mermas, incidencias, trazabilidad
 lote → preparación, informes de costes y caducidades, seed de datos demo, copias de seguridad con
 restauración probada, una medición de rendimiento repetible y una pila de producción con
-`compose.prod.yaml` y Caddy. **245 tests** en verde más una comprobación de rendimiento opt-in. Queda
+`compose.prod.yaml` y Caddy. **247 tests** en verde más una comprobación de rendimiento opt-in. Queda
 P2 (base legal y retención) antes de datos reales de empleados. Ver `docs/memoria.md`.
 
 ## Documentación
