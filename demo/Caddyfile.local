@@ -1,0 +1,53 @@
+# Proxy local para previsualizar el panel sin dominio ni TLS.
+#
+# Uso (desde la raíz del repositorio, con la demo de scripts/demo.sh levantada en :8081):
+#   docker run --rm -d --name cocina-demo-preview ^
+#     -p 8082:8082 ^
+#     -v "%CD%/demo/Caddyfile.local:/etc/caddy/Caddyfile:ro" ^
+#     -v "%CD%/demo/site:/srv:ro" ^
+#     caddy:2-alpine
+#   abrir http://localhost:8082
+#
+# Repite la allowlist de Caddyfile.demo: solo GET de /api/v1/* y POST /auth/login.
+# host.docker.internal es el atajo de Docker Desktop para llegar al host; en Linux
+# hay que añadir --add-host host.docker.internal:host-gateway.
+
+{
+	admin off
+	auto_https off
+}
+
+:8082 {
+	encode zstd gzip
+
+	@api_read {
+		method GET
+		path /api/v1/*
+	}
+	handle @api_read {
+		reverse_proxy host.docker.internal:8081
+	}
+
+	@api_login {
+		method POST
+		path /api/v1/auth/login
+	}
+	handle @api_login {
+		reverse_proxy host.docker.internal:8081
+	}
+
+	handle /api/* {
+		respond "Esta demostración es de solo lectura." 403
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

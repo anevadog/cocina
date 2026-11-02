@@ -1,0 +1,128 @@
+# Pila de demo pública: PostgreSQL + API + panel de solo lectura detrás de Caddy.
+#
+# Objetivo: enseñar el producto a un cliente o reclutador sin dar acceso de escritura.
+# La API corre con el perfil `prod,demo`: datos ficticios, documentación apagada y sin
+# administrador de arranque. El proxy solo deja pasar GET y el login del panel.
+#
+# Uso (con .env.demo creado a partir de .env.demo.example):
+#   docker compose -f compose.demo.yaml --env-file .env.demo up -d --build
+#   docker compose -f compose.demo.yaml --env-file .env.demo ps
+#
+# No reutilizar en el mismo VPS que compose.prod.yaml: ambos publican 80/443.
+
+name: cocina-demo
+
+services:
+  db:
+    image: postgres:18
+    container_name: cocina-demo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?define POSTGRES_DB en .env.demo}
+      POSTGRES_USER: ${POSTGRES_USER:?define POSTGRES_USER en .env.demo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env.demo}
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - demo-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: ${DB_MEMORY_LIMIT:-512M}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cocina-api:${APP_VERSION:-demo}
+    container_name: cocina-demo-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env.demo
+    environment:
+      # `prod` aporta el endurecimiento; `demo` siembra datos ficticios al arrancar.
+      SPRING_PROFILES_ACTIVE: prod,demo
+      DB_HOST: db
+      DB_PORT: "5432"
+      TZ: UTC
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/ready >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: ${API_MEMORY_LIMIT:-768M}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  proxy:
+    image: caddy:2-alpine
+    container_name: cocina-demo-proxy
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?define SITE_ADDRESS en .env.demo}
+      ACME_EMAIL: ${ACME_EMAIL:?define ACME_EMAIL en .env.demo}
+    volumes:
+      - ./Caddyfile.demo:/etc/caddy/Caddyfile:ro
+      - ./demo/site:/srv:ro
+      - demo-caddy-data:/data
+      - demo-caddy-config:/config
+    networks:
+      - backend
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  demo-db-data:
+    name: cocina-demo-db-data
+  demo-caddy-data:
+    name: cocina-demo-caddy-data
+  demo-caddy-config:
+    name: cocina-demo-caddy-config
+
+networks:
+  backend:
+    driver: bridge

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cocina — demo en vivo</title>
+  <meta name="description" content="Demostración de una API para la operación interna de la cocina de un restaurante: stock, recetas, producción y caducidades.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand">Cocina</span>
+    <span class="badge">demo en vivo</span>
+    <span class="spacer"></span>
+    <span class="badge badge-muted">datos ficticios · solo lectura</span>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>La cocina, bajo control</h1>
+      <p>
+        Esta página consume una API real: inventario con lotes y caducidades, recetas con su coste
+        por ración y el plan de producción de mañana. Los datos son de demostración y la vista es de
+        solo lectura.
+      </p>
+    </section>
+
+    <div id="status" class="status" role="status" aria-live="polite">Cargando datos de la demo…</div>
+
+    <section class="kpis" aria-label="Resumen">
+      <article class="kpi">
+        <span class="kpi-label">Productos</span>
+        <strong id="kpi-products">—</strong>
+      </article>
+      <article class="kpi">
+        <span class="kpi-label">Bajo mínimo</span>
+        <strong id="kpi-lowstock">—</strong>
+      </article>
+      <article class="kpi">
+        <span class="kpi-label">Lotes en riesgo</span>
+        <strong id="kpi-lots">—</strong>
+      </article>
+      <article class="kpi kpi-accent">
+        <span class="kpi-label">Valor en riesgo</span>
+        <strong id="kpi-value">—</strong>
+      </article>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Coste real por ración</h2>
+        <p class="hint">Cada versión publicada conserva su coste aunque cambie el precio de compra.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th scope="col">Receta</th><th scope="col" class="num">Raciones</th><th scope="col" class="num">€ / ración</th><th scope="col" class="num">Variación</th></tr>
+            </thead>
+            <tbody id="recipes-body">
+              <tr><td colspan="4" class="empty">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="card-foot" id="recipes-summary"></p>
+      </article>
+
+      <article class="card">
+        <h2>Qué caduca antes</h2>
+        <p class="hint">Lotes con menos días de vida y el dinero que representan.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th scope="col">Producto</th><th scope="col" class="num">Días</th><th scope="col" class="num">Cantidad</th><th scope="col" class="num">Valor</th></tr>
+            </thead>
+            <tbody id="expiring-body">
+              <tr><td colspan="4" class="empty">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="card">
+      <h2>Plan de producción de mañana</h2>
+      <p class="hint">Las necesidades se agregan por producto y se redondean una sola vez.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th scope="col">Receta</th><th scope="col" class="num">Previstas</th><th scope="col">Estado</th><th scope="col" class="num">Real</th><th scope="col" class="num">Desviación</th></tr>
+          </thead>
+          <tbody id="plan-body">
+            <tr><td colspan="5" class="empty">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      API REST en Java 25 + Spring Boot 4.1 sobre PostgreSQL 18 · 247 tests ·
+      datos ficticios · vista de solo lectura.
+    </p>
+    <p class="small">
+      Las operaciones de escritura están bloqueadas en el proxy. Si algo no carga,
+      <button type="button" id="retry" class="link">vuelve a intentarlo</button>.
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

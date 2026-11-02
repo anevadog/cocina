@@ -1,0 +1,67 @@
+# Proxy de la demo pública: sirve el panel estático y expone solo lectura de la API.
+#
+# Regla de oro: el cliente HTTP puede leer y autenticarse, nada más. Cualquier otro método
+# sobre /api/* se rechaza aquí, aunque la API tuviera permisos para hacerlo.
+#
+# Variables (las inyecta compose.demo.yaml):
+#   SITE_ADDRESS  dominio público, por ejemplo demo.example.com
+#   ACME_EMAIL    correo de contacto para Let's Encrypt
+
+{
+	email {$ACME_EMAIL}
+	admin off
+}
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		Content-Security-Policy "default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+		-Server
+	}
+
+	# El panel solo envía un login pequeño; no hay subidas.
+	request_body {
+		max_size 64KB
+	}
+
+	# Lectura de la API (cualquier GET bajo /api/v1/).
+	@api_read {
+		method GET
+		path /api/v1/*
+	}
+	handle @api_read {
+		reverse_proxy api:8080
+	}
+
+	# Único POST permitido: el login del panel.
+	@api_login {
+		method POST
+		path /api/v1/auth/login
+	}
+	handle @api_login {
+		reverse_proxy api:8080
+	}
+
+	# Todo lo demás bajo /api queda cerrado, incluidos refresh, logout y escrituras.
+	handle /api/* {
+		respond "Esta demostración es de solo lectura." 403
+	}
+
+	# Panel estático.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
