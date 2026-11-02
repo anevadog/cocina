@@ -54,3 +54,6 @@ compose.override.yaml
 
 # Datos locales de PostgreSQL (si se monta el volumen en el repo)
 pgdata/
+
+# Copias de seguridad locales (nunca se commitean: contienen datos)
+backups/

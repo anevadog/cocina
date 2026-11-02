@@ -4,11 +4,13 @@ API REST para estandarizar y controlar la operación de la cocina de un restaura
 lotes y caducidades, recetas técnicas versionadas con coste real, producción diaria con descuento
 automático de stock, trazabilidad y permisos por puesto.
 
-**Estado:** F7 en curso (bloque A cerrado). La API arranca, aplica migraciones V1–V7 en PostgreSQL 18,
+**Estado:** F7 en curso (bloques A y B cerrados). La API arranca, aplica migraciones V1–V7 en PostgreSQL 18,
 expone `/health`, `/ready` y OpenAPI, e incluye autenticación JWT con refresh rotatorio, RBAC por rol,
 auditoría append-only protegida por trigger, inventario con lotes y PMP, recetas versionadas con coste,
 producción con descuento atómico, temperaturas con alertas, mermas, incidencias, trazabilidad
-lote → preparación e informes de costes y caducidades. **245 tests** en verde. Ver `docs/memoria.md`.
+lote → preparación, informes de costes y caducidades, seed de datos demo, copias de seguridad con
+restauración probada y una medición de rendimiento repetible. **245 tests** en verde más una
+comprobación de rendimiento opt-in. Ver `docs/memoria.md`.
 
 ## Documentación
 
@@ -20,6 +22,8 @@ lote → preparación e informes de costes y caducidades. **245 tests** en verde
 | `docs/decisiones.md` | Registro de decisiones técnicas (ADR) |
 | `docs/plan.md` | Fases, tareas y progreso |
 | `docs/memoria.md` | Estado actual y punto de continuación |
+| `docs/backups.md` | Copias de seguridad, restauración y prueba registrada |
+| `docs/rendimiento.md` | Método y resultados de NFR-REN-01/02 |
 
 ## Requisitos del entorno
 
@@ -83,6 +87,21 @@ curl -s -X POST http://localhost:8080/api/v1/auth/login \
 curl -s http://localhost:8080/api/v1/users -H "Authorization: Bearer <accessToken>"
 ```
 
+### Datos de demostración
+
+Con una base **vacía** (por ejemplo, tras `docker compose down -v`), el perfil `demo` crea usuarios,
+catálogo, recetas publicadas, un plan de producción, temperaturas, una merma y una incidencia:
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local,demo
+# o sobre el jar: java -jar target/cocina-0.1.0-SNAPSHOT.jar --spring.profiles.active=local,demo
+```
+
+- Usuarios: `demo.admin`, `demo.manager`, `demo.cook` y `demo.store`.
+- Contraseña: `Demo2026!segura` por defecto; se cambia con `cocina.demo.password`
+  (`COCINA_DEMO_PASSWORD` en el entorno) y nunca se escribe en el log.
+- El seed es idempotente: si ya hay productos, no hace nada. No se ejecuta sin el perfil `demo`.
+
 ## Comandos habituales
 
 ```bash
@@ -91,6 +110,9 @@ curl -s http://localhost:8080/api/v1/users -H "Authorization: Bearer <accessToke
 ./mvnw spotless:apply    # formatear el código (Spotless + palantir-java-format)
 ./mvnw spring-boot:run   # arrancar en local
 ./mvnw package           # generar el jar ejecutable en target/
+./mvnw -Dtest=PerformanceBaselineCheck -Dcocina.performance=true test   # medición de rendimiento
+sh scripts/backup.sh     # copia lógica en backups/ (Git Bash o WSL)
+sh scripts/restore.sh backups/<archivo>.dump cocina_restore             # restaurar en base nueva
 docker compose ps        # estado de los contenedores
 docker compose logs -f db
 docker compose down      # parar PostgreSQL (añade -v para borrar los datos)
@@ -107,27 +129,32 @@ El informe de cobertura queda en `target/site/jacoco/index.html`; `verify` no im
 ```text
 cocina/
 ├─ AGENTS.md  CLAUDE.md  README.md
-├─ docs/                        # requisitos, arquitectura, decisiones, plan, memoria
+├─ docs/                        # requisitos, arquitectura, decisiones, plan, memoria, backups y rendimiento
+├─ scripts/                     # backup.sh y restore.sh (NFR-DIS-02)
 ├─ .mvn/wrapper/                # configuración del Maven Wrapper (Maven 3.9.16)
 ├─ .github/workflows/ci.yml     # ./mvnw verify en GitHub Actions
 ├─ mvnw  mvnw.cmd  pom.xml
 ├─ src/main/java/com/killa/cocina/
 │  ├─ CocinaApplication.java
 │  ├─ config/                   # reloj UTC, seguridad (JWT), propiedades, bootstrap del admin
+│  ├─ demo/                     # seed de datos de ejemplo (perfil demo, PLA-05)
 │  ├─ shared/
 │  │  ├─ error/                 # cuerpo de error uniforme (PLA-02)
 │  │  ├─ health/                # /health y /ready (PLA-04)
 │  │  ├─ pagination/            # página independiente de Spring (PLA-03)
 │  │  ├─ security/              # actor autenticado leído del token (PER-04)
 │  │  └─ web/                   # requestId (NFR-OBS-01)
-│  └─ modules/                  # un paquete por dominio; hoy auth, users, audit, inventory y suppliers
+│  └─ modules/                  # auth, users, audit, inventory, suppliers, recipes, production, quality, reporting
 ├─ src/main/resources/
 │  ├─ application.yml  application-local.yml  application-test.yml
 │  └─ db/migration/
 │     ├─ V1__baseline.sql             # establishments
 │     ├─ V2__users_auth_audit.sql     # app_users, refresh_tokens, audit_logs
 │     ├─ V3__inventory_catalog.sql    # categorías, productos, conversiones y proveedores
-│     └─ V4__inventory_movements.sql  # lotes, kardex inmutable y trigger
+│     ├─ V4__inventory_movements.sql  # lotes, kardex inmutable y trigger
+│     ├─ V5__recipes.sql              # recetas, versiones y composición congelada
+│     ├─ V6__production.sql           # planes, ítems y batches
+│     └─ V7__quality.sql              # temperaturas, mermas, incidencias y auditoría protegida
 ├─ src/test/java/com/killa/cocina/
 │  ├─ architecture/             # ArchUnit: fronteras y permisos por endpoint
 │  ├─ infrastructure/           # migraciones sobre PostgreSQL real

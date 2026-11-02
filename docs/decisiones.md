@@ -42,6 +42,13 @@ Una entrada por decisión con contexto, opciones, decisión y consecuencias. Est
 | ADR-035 | El coste se congela con los productos bloqueados en orden | Aceptada |
 | ADR-036 | Plan por servicio, batch por ítem y estado derivado | Aceptada |
 | ADR-037 | Puertos de producción, bloqueo ordenado e informes de consumo | Aceptada |
+| ADR-038 | Rango de temperatura por lectura y alerta derivada | Aceptada |
+| ADR-039 | La merma se valora al PMP y puede retirar lotes caducados | Aceptada |
+| ADR-040 | Incidencias sin reapertura y trazabilidad por puertos publicados | Aceptada |
+| ADR-041 | Los informes económicos viven en un módulo de solo lectura | Aceptada |
+| ADR-042 | Seed demo por servicios y en una sola transacción | Aceptada |
+| ADR-043 | Copias lógicas con `pg_dump` y restauración en base nueva | Aceptada |
+| ADR-044 | Rendimiento medido con un check opt-in, no en CI | Aceptada |
 
 ---
 
@@ -816,3 +823,70 @@ módulo queda preparado para las exportaciones futuras sin acoplar recetas o inv
 otro dominio. El precio es una consulta agregada más en el puerto de versiones publicadas y otra de
 suma en el de lotes. Si el volumen crece, el siguiente paso natural son vistas de lectura o caché, no
 recalcular en cada petición.
+
+---
+
+## ADR-042 — Seed demo por servicios y en una sola transacción
+
+**Contexto:** PLA-05 exige levantar una base vacía con un comando y datos que permitan probar el
+producto. Un seed por SQL sería rápido, pero duplicaría las reglas de negocio (PMP, versiones
+publicadas, auditoría, consumo de lotes) y podría crear datos que la aplicación nunca produciría. Un
+seed por servicios es más lento, pero garantiza que el ejemplo pasa por las mismas validaciones que un
+usuario real.
+
+**Opciones:** `INSERT` directos en una migración (A) · servicios de dominio en un `ApplicationRunner`
+con perfil propio (B) · ficheros de fixtures restaurados con `pg_restore` (C).
+
+**Decisión:** `DemoDataSeeder`, activo solo con el perfil `demo`, ejecutado tras `AdminBootstrap`
+(`@Order(100)` frente a `@Order(0)`) y anotado con `@Transactional`: o se siembra todo, o no queda
+nada. Usa los servicios de usuarios, catálogo, stock, recetas, producción y calidad, y se salta si ya
+hay productos. La contraseña de los usuarios demo se toma de `cocina.demo.password`
+(`Demo2026!segura` por defecto) y **no** se escribe en el log.
+
+**Consecuencias:** el seed tarda unos segundos y no puede ejecutarse sobre una base con datos; a
+cambio, el resultado respeta la auditoría, el coste congelado y el kardex, y una interrupción no deja
+un estado a medias que el guard confundiría con una siembra completa. Para volver a sembrar hay que
+recrear la base (`docker compose down -v`), decisión deliberada: no se borran datos de negocio desde la
+aplicación.
+
+---
+
+## ADR-043 — Copias lógicas con `pg_dump` y restauración en base nueva
+
+**Contexto:** NFR-DIS-02 exige copia diaria y restauración probada. El MVP tiene una única base
+PostgreSQL en un contenedor y el despliegue definitivo sigue pendiente (P1). Una copia física con
+archivado de WAL daría PITR, pero exige infraestructura y operación que todavía no existen.
+
+**Opciones:** copia física + WAL (A) · instantáneas del proveedor gestionado (B) · volcado lógico
+`pg_dump -Fc` con scripts y prueba de restauración (C).
+
+**Decisión:** volcado lógico diario en formato *custom* con `pg_dump -Fc`, suma SHA-256 y retención de
+30 días; restauración con `pg_restore --no-owner` en una base **nueva** (nunca sobre la de trabajo),
+con recuentos y arranque real como verificación. Los scripts viven en `scripts/backup.sh` y
+`scripts/restore.sh`; `backups/` está en `.gitignore`. La programación y la copia externa se deciden con
+P1.
+
+**Consecuencias:** el RPO es de 24 h y no hay PITR; el RTO depende del tamaño de la base y de la
+provisión del entorno, no del volcado. La restauración es portable entre versiones menores y permite
+recuperar una tabla o una base completa. Los volcados contienen datos personales: deben guardarse
+cifrados y con acceso restringido, y la copia externa sigue pendiente.
+
+---
+
+## ADR-044 — Rendimiento medido con un check opt-in, no en CI
+
+**Contexto:** NFR-REN-01 y NFR-REN-02 exigen latencias con volúmenes concretos. Un *benchmark* en cada
+`./mvnw verify` duplicaría el tiempo de la suite y sería inestable en máquinas compartidas; añadir
+JMeter o Gatling incorpora una herramienta nueva para una necesidad puntual.
+
+**Opciones:** *benchmark* siempre en CI (A) · herramienta externa de carga (B) · comprobación JUnit
+opt-in contra la API real y Testcontainers (C).
+
+**Decisión:** `PerformanceBaselineCheck`, una clase que no coincide con los patrones de Surefire y que
+además exige `-Dcocina.performance=true`. Levanta PostgreSQL 18 y la API con Tomcat en un puerto
+aleatorio, siembra 100 000 movimientos y 100 recetas, mide con 10 clientes concurrentes por HTTP y
+afirma los p95 del requisito. Los resultados se registran en `docs/rendimiento.md`.
+
+**Consecuencias:** la suite normal no se alarga ni depende de la carga de la máquina, pero la medición
+es manual y hay que repetirla al tocar rutas calientes o índices. Es una referencia de regresión, no
+una prueba de resistencia ni un SLA: el rendimiento en producción se valida en P1 con hardware real.

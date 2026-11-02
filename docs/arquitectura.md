@@ -45,6 +45,10 @@ Reglas de dependencia:
 
 `reporting` es de solo lectura: puede consultar vistas o tablas, nunca escribir en otros dominios.
 
+Fuera de `modules` vive `com.killa.cocina.demo`: un `ApplicationRunner` con perfil `demo` que siembra
+datos de ejemplo llamando a los servicios públicos. No es un módulo de negocio ni lo usa la aplicación
+en producción (ADR-042).
+
 ### 2.1 Capas y dónde vive cada cosa
 
 | Capa | Contenido | Puede importar |
@@ -491,12 +495,18 @@ por defecto. La decisión y sus alternativas están en ADR-019.
   `audit_logs(entity_type, entity_id)`, `production_plans(service_date)`.
 - Sin caché en el MVP; si hace falta, primero medir.
 - Informes: SQL agregado y solo lectura; no cargar entidades completas para sumar.
+- Medición de referencia con 10 clientes y 100 000 movimientos (NFR-REN-01/02): peor p95 de lectura
+  93 ms y necesidades de 500 raciones en 136 ms. Método y resultados en `docs/rendimiento.md`.
 
 ## 9. Observabilidad y operación
 
 - Logs JSON con `requestId`, usuario y módulo; sin datos sensibles.
 - `/health` (proceso) y `/ready` (base de datos y migraciones).
-- Backups: `pg_dump` diario del contenedor o del servidor; restauración probada en F7.
+- Backups: `scripts/backup.sh` (volcado `pg_dump -Fc`, SHA-256 y retención de 30 días) y
+  `scripts/restore.sh` (restauración en base nueva con recuentos). Procedimiento y prueba registrada
+  en `docs/backups.md` (ADR-043).
+- Datos de demostración: perfil `demo` (`DemoDataSeeder`), sobre base vacía y con una sola
+  transacción; credenciales `demo.*` con la contraseña de `cocina.demo.password`.
 - Imagen Docker: multi-stage, JRE 25, usuario no root, healthcheck.
 
 ## 10. Pendiente

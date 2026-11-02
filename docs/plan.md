@@ -16,7 +16,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
 | F4 | Recetas, versiones y costes | [x] | ~2 semanas |
 | F5 | Producción y descuento automático | [x] | ~1,5 semanas |
 | F6 | Calidad y trazabilidad | [x] | ~1,5 semanas |
-| F7 | Informes, endurecimiento y despliegue | [~] En curso (bloque A) | ~2 semanas |
+| F7 | Informes, endurecimiento y despliegue | [~] En curso (bloque B cerrado) | ~2 semanas |
 
 Total orientativo MVP: **13–16 semanas** a tiempo parcial, una persona. Son estimaciones, no
 compromisos.
@@ -179,11 +179,14 @@ remoto Git; se comprobará al publicar el repositorio.
 - [x] Tests de dominio, integración y permisos
 - [x] Documentación: arquitectura, ADR-041, memoria y AGENTS.md
 
-**Bloque B — rendimiento, backups y seed**
+**Bloque B — rendimiento, backups y seed (hecho y verificado)**
 
-- [ ] Revisión de rendimiento (NFR-REN-01/02)
-- [ ] Backups documentados y restauración probada (NFR-DIS-02)
-- [ ] Seed de datos demo (PLA-05)
+- [x] Revisión de rendimiento (NFR-REN-01/02) con `PerformanceBaselineCheck` opt-in y resultados en
+      `docs/rendimiento.md` (ADR-044)
+- [x] Backups documentados y restauración probada en vivo (NFR-DIS-02): `docs/backups.md`,
+      `scripts/backup.sh` y `scripts/restore.sh` (ADR-043)
+- [x] Seed de datos demo (PLA-05): `DemoDataSeeder` con perfil `demo`, ordenado tras `AdminBootstrap`,
+      en una sola transacción e idempotente (ADR-042)
 
 **Bloque C — endurecimiento y despliegue**
 
