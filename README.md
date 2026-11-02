@@ -29,6 +29,7 @@ P2 (base legal y retención) antes de datos reales de empleados. Ver `docs/memor
 | `docs/seguridad.md` | Endurecimiento, gestión de secretos y datos personales |
 | `docs/demo.md` | Guion y script de demostración reproducible con datos ficticios |
 | `docs/revision-tecnica.md` | Guía para un revisor externo o auditor: qué mirar, cómo reproducirlo y qué límites hay |
+| `docs/chuleta-defensa.md` | Chuleta para defender el proyecto en una exposición técnica |
 
 ## Requisitos del entorno
 
