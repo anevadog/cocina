@@ -194,7 +194,9 @@ docker compose -f compose.demo.yaml --env-file .env.demo up -d --build
 sh scripts/demo-public-reset.sh    # reiniciar los datos ficticios
 ```
 
-Decisión en ADR-047 y procedimiento completo en `docs/demo-publica.md`. La demo **no** está desplegada
+Decisión en ADR-047 y procedimiento completo en `docs/demo-publica.md`. Mientras no esté desplegada,
+`demo/recorrido/` ofrece un recorrido visual de seis escenas con una instantánea de la API real
+(ADR-048, `docs/demo.md` §7). La demo **no** está desplegada
 todavía: requiere VPS y dominio. Para previsualizarla en local está `demo/Caddyfile.local`.
 
 ## Comandos habituales
@@ -211,6 +213,7 @@ sh scripts/restore.sh backups/<archivo>.dump cocina_restore             # restau
 sh scripts/check-secrets.sh                                             # NFR-SEG-04 (también en CI)
 sh scripts/demo.sh       # demostración reproducible con datos ficticios (deja Swagger en :8081)
 sh scripts/demo.sh --stop                                               # parar y borrar la demo
+sh scripts/demo-snapshot.sh                                             # regenerar los datos del recorrido visual
 sh scripts/demo-public-reset.sh                                         # reiniciar los datos de la demo pública
 docker compose ps        # estado de los contenedores
 docker compose logs -f db
@@ -259,7 +262,7 @@ cocina/
 │  ├─ infrastructure/           # migraciones sobre PostgreSQL real
 │  ├─ modules/                  # dominio puro e integración de auth, users e inventory
 │  └─ support/                  # contenedor PostgreSQL compartido (Testcontainers)
-├─ demo/                         # panel estático y Caddyfile local de la demo pública (fuera del MVP)
+├─ demo/                         # panel de la demo pública y recorrido visual estático (fuera del MVP)
 ├─ compose.yaml                 # PostgreSQL 18 para desarrollo (host: 5433)
 ├─ compose.prod.yaml            # pila de producción: PostgreSQL, API y Caddy
 ├─ compose.demo.yaml            # pila de demo pública de solo lectura (ADR-047)

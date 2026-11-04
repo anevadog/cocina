@@ -966,3 +966,27 @@ privadas, con datos ficticios y un coste añadido de un VPS pequeño (≤ 15 €
 `docs/despliegue.md`). A cambio hay una superficie que mantener: dos pilas si coinciden demo y
 producción, reinicio nocturno, límite de peticiones pendiente y aviso legal pendiente de revisión. La
 demo no prueba el rendimiento real, ni la operación con datos de un cliente, ni resuelve **P2**.
+
+## ADR-048 — Recorrido visual estático con instantánea de la API
+
+**Contexto:** la demo pública (ADR-047) necesita VPS y dominio y todavía no está desplegada; hasta
+entonces, enseñar el producto exige clonar el repositorio y tener Docker. Además, el panel de
+`demo/site/` muestra el estado (tablas y cifras) pero no el flujo que justifica el proyecto: compra,
+receta con coste congelado, producción con descuento de stock, caducidades y permisos.
+
+**Opciones:** esperar al VPS y ampliar el panel en vivo (A) · página estática con datos inventados
+(B) · página estática que lee una instantánea de respuestas reales de la API (C).
+
+**Decisión:** (C). `demo/recorrido/` es una página de seis escenas sin dependencias de servidor que
+lee `demo/recorrido/data.js`, generado por `scripts/demo-snapshot.sh` con solo peticiones `GET` sobre
+la base de `scripts/demo.sh`. La instantánea no guarda tokens, contraseñas ni el listado de usuarios.
+Para que el coste congelado se vea con datos reales, `scripts/demo.sh` registra en el paso 6 una
+compra de tomate más cara y publica la versión 2 de la salsa por la API, igual que lo haría un
+usuario. Como el panel de ADR-047, es material de demostración fuera del alcance del MVP.
+
+**Consecuencias:** el recorrido se puede alojar en cualquier sitio estático y verse sin instalar
+nada; es el soporte natural del vídeo de presentación. A cambio no está en vivo: las cifras son las
+del día de la captura y hay que regenerarlas si cambia el seed o el contrato. Las escenas citan el
+endpoint del que sale cada dato y los tests que respaldan cada garantía, para que la página no
+prometa más de lo que la API demuestra. La demo de `demo.sh` pasa de 3 a 4 versiones publicadas y
+de 6 a 7 lotes en riesgo.

@@ -2,7 +2,7 @@
 
 > Guion para enseñar la API con datos reales de demostración. No es una maqueta: el script
 > arranca PostgreSQL, la API con el perfil `local,demo` y ejecuta el recorrido contra los
-> endpoints reales. Última revisión: 2026-11-02.
+> endpoints reales. Última revisión: 2026-11-04.
 
 ## 1. Qué demuestra
 
@@ -10,7 +10,7 @@
 |---|---|
 | Seguridad | Login JWT, refresh rotatorio, RBAC por permiso y atribución de operaciones |
 | Inventario | 10 productos en 4 categorías, stock en unidad base, PMP, kardex y alertas |
-| Recetas | 3 recetas publicadas con coste congelado por ración (ECO-01) |
+| Recetas | 3 recetas publicadas con coste congelado por ración y una versión 2 tras subir el tomate (ECO-01) |
 | Caducidades | Lotes en riesgo y valor económico (ECO-06) |
 | Producción | Plan por fecha y servicio, necesidades agregadas, ejecución y desviación (PRD-01..05) |
 | Calidad | Temperaturas, mermas, incidencias y trazabilidad lote → preparación |
@@ -49,7 +49,7 @@ Credenciales del seed: `demo.admin` / `Demo2026!segura` (también existen `demo.
 ## 4. Recorrido para presentarlo
 
 El script imprime el recorrido completo. Esta es la salida real de una ejecución
-(2026-11-02, PostgreSQL 18 en Docker, JDK 25):
+(2026-11-04, PostgreSQL 18 en Docker, JDK 25):
 
 ```text
 1/9 · Preparando PostgreSQL de demostración (cocina_demo en :55432)
@@ -73,18 +73,21 @@ El script imprime el recorrido completo. Esta es la salida real de una ejecució
   PMP por producto y kardex inmutable: cada entrada, salida y ajuste deja su movimiento.
 
 6/9 · Recetas publicadas y coste congelado (ECO-01)
-  Recetas: 3 · versiones publicadas: 3.
+  Compra: 10 kg de tomate a 3,20 €/kg (antes 2,10 €/kg); el PMP del tomate se recalcula.
+  Salsa de tomate v2 publicada con el precio nuevo; la v1 conserva su coste congelado.
+  Recetas: 3 · versiones publicadas: 4.
   · Arroz con pollo: 1.2506 €/ración (primera versión)
   · Salsa de tomate: 1.2930 €/ración (primera versión)
+  · Salsa de tomate: 1.4930 €/ración (variación 15.47 % sobre la versión anterior)
   · Tortilla de patata: 0.8212 €/ración (primera versión)
   El coste se congela al publicar: un cambio de PMP no reescribe el histórico.
 
 7/9 · Caducidades y valor en riesgo (ECO-06)
-  Lotes en riesgo: 6 · valor: 201.6400 €.
+  Lotes en riesgo: 7 · valor: 233.6400 €.
   Incluye días restantes y saldo de cada lote; los caducados no se consumen en producción.
 
 8/9 · Producción: plan, necesidades y ejecución con desviación
-  Plan #1 para 2026-11-03 (comida) con 3 ítems.
+  Plan #1 para 2026-11-05 (comida) con 3 ítems.
   Necesidades agregadas calculadas, un solo redondeo por producto:
   · Patata: 2000.000 g
   · Cebolla: 1600.000 g
@@ -123,7 +126,9 @@ Demostración lista
 3. **Inventario**: todo se guarda en unidad base; las conversiones (kg, l, docena) se aplican en el
    borde. El kardex es inmutable y el PMP se recalcula solo con las compras.
 4. **Coste**: cada versión publicada conserva su coste aunque después cambie el precio de compra.
-   Es la diferencia entre «lo que cuesta hoy» y «lo que costó cuando se aprobó».
+   Es la diferencia entre «lo que cuesta hoy» y «lo que costó cuando se aprobó». El script lo
+   provoca: compra tomate más caro y publica la versión 2 de la salsa (1,29 € → 1,49 € por ración,
+   +15,47 %), mientras la versión 1 sigue en 1,29 €.
 5. **Caducidades**: el valor en riesgo permite decidir qué gastar primero. Un lote caducado no se
    consume en producción: la API devuelve conflicto.
 6. **Producción**: las necesidades se agregan por producto y se redondean una sola vez. Al terminar
@@ -193,7 +198,25 @@ tabla son siempre los mismos. La base de desarrollo `cocina` (puerto 5433) no se
 - Si algo falla, revisar `.demo/api.log`; el script deja la API en marcha a propósito para poder
   seguir mostrando Swagger.
 
-## 7. Limitaciones
+## 7. Recorrido visual (instantánea)
+
+`demo/recorrido/` es una página estática de seis escenas (compra, receta, producción, caducidades
+y permisos) pensada para el vídeo y para quien no va a instalar nada. No se conecta a ningún
+servidor: lee `demo/recorrido/data.js`, que son respuestas reales de la API capturadas con solo
+lecturas (ADR-048).
+
+```bash
+sh scripts/demo.sh             # base demo con el recorrido completo
+sh scripts/demo-snapshot.sh    # regenera demo/recorrido/data.js (solo GET)
+```
+
+La instantánea no guarda tokens, contraseñas ni el listado de usuarios; de la prueba de permisos solo
+conserva los códigos 401/403/200 y el mensaje de error. Para verla en local hay que servir la carpeta
+por HTTP (abierta como fichero, algunos navegadores no cargan `data.js`). Navegación con las
+flechas, botón **Reproducir solo** (9 s por escena) y enlaces directos por escena (`#compra`,
+`#receta`, `#produccion`, `#caducidades`, `#confianza`).
+
+## 8. Limitaciones
 
 - Es una demo de **API**, no de una interfaz de usuario: el producto del MVP es el contrato HTTP.
 - Los datos son ficticios y desechables; no se usan datos personales reales.

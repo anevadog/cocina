@@ -209,6 +209,8 @@ remoto Git; se comprobará al publicar el repositorio.
 No amplía el alcance funcional; sirve para enseñar el proyecto.
 
 - [x] Demo pública de solo lectura preparada y verificada en local (ADR-047, `docs/demo-publica.md`)
+- [x] Recorrido visual estático de seis escenas con instantánea real de la API (ADR-048,
+      `demo/recorrido/`, `scripts/demo-snapshot.sh`) y versión 2 de la salsa en `scripts/demo.sh`
 - [x] README con cabecera para quien no es técnico: captura del panel, qué resuelve, stack, prueba en dos
       comandos y enlaces para revisores técnicos
 - [ ] Vídeo de presentación enlazado en el README
