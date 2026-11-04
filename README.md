@@ -31,7 +31,7 @@ solo puede hacer lo que le toca. Todas las cifras son respuestas reales de la AP
 ficticios, capturadas con [`scripts/demo-snapshot.sh`](scripts/demo-snapshot.sh). Está en
 [`demo/recorrido/`](demo/recorrido/) y no necesita base de datos ni Docker (ver *Pruébalo*).
 
-<!-- RECORRIDO: añadir aquí el enlace público al recorrido cuando se aloje -->
+**[▶ Ver el recorrido en el navegador](https://anevadog.github.io/cocina/)** (GitHub Pages, sin instalar nada).
 
 ## Cómo está hecho
 

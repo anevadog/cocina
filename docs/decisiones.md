@@ -990,3 +990,7 @@ del día de la captura y hay que regenerarlas si cambia el seed o el contrato. L
 endpoint del que sale cada dato y los tests que respaldan cada garantía, para que la página no
 prometa más de lo que la API demuestra. La demo de `demo.sh` pasa de 3 a 4 versiones publicadas y
 de 6 a 7 lotes en riesgo.
+
+**Alojamiento:** GitHub Pages con `.github/workflows/pages.yml`, que publica solo `demo/recorrido/`
+(no el resto del repositorio) en <https://anevadog.github.io/cocina/> cuando cambia esa carpeta. Requiere
+activar Pages con origen *GitHub Actions* en la configuración del repositorio.
