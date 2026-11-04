@@ -178,6 +178,26 @@ note "Bajo mínimo: $(field_num "$ALERTS" lowStockTotal) · próximos a caducar:
 note "PMP por producto y kardex inmutable: cada entrada, salida y ajuste deja su movimiento."
 
 say "6/9 · Recetas publicadas y coste congelado (ECO-01)"
+# El proveedor sube el tomate: nueva compra más cara, que mueve el PMP, y versión 2 de la salsa.
+SUPPLIERS="$(api /api/v1/suppliers)"
+SUPPLIER_ID="$(printf '%s' "$SUPPLIERS" | sed -n 's/.*"content":\[{"id":\([0-9]*\).*/\1/p')"
+TOMATE_ID="$(printf '%s' "$PRODUCTS" | grep -o '"id":[0-9]*,"categoryId":[0-9]*,"name":"Tomate"' | head -n 1 | sed 's/.*"id":\([0-9]*\).*/\1/')"
+[ -n "$SUPPLIER_ID" ] && [ -n "$TOMATE_ID" ] || fail "No se encontró el proveedor o el tomate del seed."
+EXPIRES_AT="$(date -u -d '+8 days' +%Y-%m-%dT%H:%M:%SZ)"
+PURCHASE="$(api_post "/api/v1/products/${TOMATE_ID}/purchases" \
+    "{\"supplierId\":${SUPPLIER_ID},\"quantity\":10,\"unit\":\"kg\",\"unitPrice\":3.20,\"expiresAt\":\"${EXPIRES_AT}\"}")"
+printf '%s' "$PURCHASE" | grep -q '"lotId"' || fail "No se pudo registrar la compra de tomate: $PURCHASE"
+note "Compra: 10 kg de tomate a 3,20 €/kg (antes 2,10 €/kg); el PMP del tomate se recalcula."
+SALSA="$(api '/api/v1/recipes?name=Salsa%20de%20tomate')"
+SALSA_ID="$(printf '%s' "$SALSA" | sed -n 's/.*"content":\[{"id":\([0-9]*\).*/\1/p')"
+[ -n "$SALSA_ID" ] || fail "No se encontró la receta Salsa de tomate."
+DRAFT="$(api_post "/api/v1/recipes/${SALSA_ID}/versions")"
+DRAFT_ID="$(printf '%s' "$DRAFT" | sed -n 's/^{"id":\([0-9]*\).*/\1/p')"
+[ -n "$DRAFT_ID" ] || fail "No se pudo crear la versión 2 de la salsa: $DRAFT"
+PUBLISHED="$(api_post "/api/v1/recipes/${SALSA_ID}/versions/${DRAFT_ID}/publish")"
+printf '%s' "$PUBLISHED" | grep -q '"status":"PUBLISHED"' || fail "No se pudo publicar la versión 2: $PUBLISHED"
+note "Salsa de tomate v2 publicada con el precio nuevo; la v1 conserva su coste congelado."
+
 COSTS="$(api /api/v1/reports/recipe-costs)"
 note "Recetas: $(field_num "$COSTS" recipeCount) · versiones publicadas: $(field_num "$COSTS" versionCount)."
 printf '%s\n' "$COSTS" | sed 's/},{/}\
