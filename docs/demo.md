@@ -212,7 +212,8 @@ sh scripts/demo-snapshot.sh    # regenera demo/recorrido/data.js (solo GET)
 
 La instantánea no guarda tokens, contraseñas ni el listado de usuarios; de la prueba de permisos solo
 conserva los códigos 401/403/200 y el mensaje de error. Para verla en local hay que servir la carpeta
-por HTTP (abierta como fichero, algunos navegadores no cargan `data.js`). Navegación con las
+por HTTP (abierta como fichero, algunos navegadores no cargan `data.js`); el JDK 25 trae un servidor
+estático: `jwebserver -d "$PWD/demo/recorrido" -p 8090` y abrir <http://localhost:8090>. Navegación con las
 flechas, botón **Reproducir solo** (9 s por escena) y enlaces directos por escena (`#compra`,
 `#receta`, `#produccion`, `#caducidades`, `#confianza`).
 

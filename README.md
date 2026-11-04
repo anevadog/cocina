@@ -21,6 +21,18 @@ almacén, cuánto cuesta de verdad cada plato y qué hay que producir hoy.
   almacén nunca queda en negativo ni se descuenta dos veces. Cada operación queda registrada con quién
   la hizo y cuándo.
 
+## El recorrido en seis pasos
+
+![Escena del recorrido: la versión 1 de la salsa conserva su coste de 1,29 € por ración y la versión 2 sube a 1,49 € tras encarecerse el tomate](docs/img/recorrido-receta.png)
+
+Una página animada que cuenta el producto de principio a fin: llega una compra, se publica una
+receta con su coste congelado, se produce y baja el stock, se vigila lo que caduca y cada persona
+solo puede hacer lo que le toca. Todas las cifras son respuestas reales de la API sobre datos
+ficticios, capturadas con [`scripts/demo-snapshot.sh`](scripts/demo-snapshot.sh). Está en
+[`demo/recorrido/`](demo/recorrido/) y no necesita base de datos ni Docker (ver *Pruébalo*).
+
+<!-- RECORRIDO: añadir aquí el enlace público al recorrido cuando se aloje -->
+
 ## Cómo está hecho
 
 | Pieza | Tecnología |
@@ -36,7 +48,14 @@ arquitectura impide que un módulo se salte las fronteras de otro.
 
 ## Pruébalo
 
-Requiere Docker en marcha, JDK 25 y una terminal `sh` (Git Bash, WSL o Linux):
+**Solo el recorrido visual** (basta con JDK 25, que trae el servidor `jwebserver`):
+
+```bash
+git clone https://github.com/anevadog/cocina.git && cd cocina
+jwebserver -d "$PWD/demo/recorrido" -p 8090    # abrir http://localhost:8090
+```
+
+**La API completa** requiere Docker en marcha, JDK 25 y una terminal `sh` (Git Bash, WSL o Linux):
 
 ```bash
 git clone https://github.com/anevadog/cocina.git && cd cocina
