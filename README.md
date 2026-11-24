@@ -306,4 +306,4 @@ Ver `.env.example` para desarrollo y `.env.production.example` para producción.
 
 ## Licencia
 
-PENDIENTE de decidir. No se distribuye todavía.
+MIT. Ver [LICENSE](LICENSE).
